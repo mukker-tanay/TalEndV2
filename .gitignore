@@ -1,0 +1,15 @@
+.venv/ 
+# Ignore dependencies
+.next/
+node_modules/
+*.exe
+*.node
+
+# Ignore logs and system files
+*.log
+.DS_Store
+.env
+
+# Ignore LFS-managed binaries (if you still want LFS later)
+*.zip
+*.tar

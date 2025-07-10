@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Slide-in from right animation */
+@keyframes slide-in-right {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes slide-out-right {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.animate-slide-out-right {
+  animation: slide-out-right 0.3s ease-in-out both;
+}
+
+.cv-card {
+  @apply bg-white shadow-md rounded p-6 border relative;
+}
+
+.cv-badge {
+  @apply absolute top-4 right-4 bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full;
+}
+
+.cv-info-grid {
+  @apply grid grid-cols-2 gap-4 text-sm mb-3;
+}
+
+.cv-skill-pill {
+  @apply bg-gray-100 text-gray-700 px-3 py-1 m-1 rounded-full text-xs;
+}
+
+.cv-name {
+  @apply text-xl font-semibold;
+}
+
+.cv-meta {
+  @apply text-sm text-gray-600;
+}
