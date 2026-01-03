@@ -8,14 +8,14 @@ services:
     volumes:
       - mongo8_data:/data/db
     ports:
-      - "127.0.0.1:27018:27018" # Map host port 27018 to container port 27017
+      - "127.0.0.1:27018:27017" # Map host port 27018 to container port 27017
     restart: always
 
   redis7:
     image: redis:latest
     container_name: jobnoc-redis7
     ports:
-      - "127.0.0.1:6380:6380" # Map host port 6380 to container port 6379
+      - "127.0.0.1:6380:6379" # Map host port 6380 to container port 6379
     restart: always
 
 volumes:
