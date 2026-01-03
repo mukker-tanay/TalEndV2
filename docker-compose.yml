@@ -1,49 +1,4 @@
 services:
-  backend:
-    build: ./BackEnd
-    container_name: jobnoc-backend
-    env_file: .env
-    volumes:
-      - ./BackEnd/uploaded_cvs:/app/uploaded_cvs
-    depends_on:
-      - mongodb8
-      - redis7
-    ports:
-      - "8000:8000"
-    networks:
-      - jobnoc-net
-    restart: always
-
-  celery-worker:
-    build: ./BackEnd
-    container_name: jobnoc-celery-worker
-    command: celery -A app.celery_worker worker --loglevel=info
-    env_file: .env
-    depends_on:
-      - mongodb8
-      - redis7
-    volumes:
-      - ./BackEnd/uploaded_cvs:/app/uploaded_cvs
-    networks:
-      - jobnoc-net
-    restart: always
-
-  frontend:
-    build:
-      context: ./FrontEnd
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
-    container_name: jobnoc-frontend
-    env_file: .env
-    ports:
-      - "3000:3000"
-    networks:
-      - jobnoc-net
-    restart: always
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-
   mongodb8:
     image: mongo:8
     container_name: jobnoc-mongo8
@@ -52,20 +7,16 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-password}
     volumes:
       - mongo8_data:/data/db
-    networks:
-      - jobnoc-net
+    ports:
+      - "127.0.0.1:27017:27017" # Only accessible from localhost
     restart: always
 
   redis7:
     image: redis:latest
     container_name: jobnoc-redis7
-    networks:
-      - jobnoc-net
+    ports:
+      - "127.0.0.1:6379:6379" # Only accessible from localhost
     restart: always
-
-networks:
-  jobnoc-net:
-    driver: bridge
 
 volumes:
   mongo8_data:
