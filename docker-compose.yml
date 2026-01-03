@@ -40,6 +40,9 @@ services:
     networks:
       - jobnoc-net
     restart: always
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
 
   mongodb8:
     image: mongo:8
