@@ -1,0 +1,7 @@
+__pycache__
+.venv
+venv
+.git
+.env
+uploaded_cvs
+*.pyc

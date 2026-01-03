@@ -73,15 +73,12 @@ def search_cvs(
     if not user_data:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    # Parse the search query
     keywords, mode = parse_boolean_query(query)
     
-    # Parse tags filter - only apply if explicitly provided and not empty
     required_tags = []
     if tags and tags.strip():
         required_tags = [tag.strip().lower() for tag in tags.split(',') if tag.strip()]
 
-    # Parse upload range filter - only apply if explicitly provided and not empty
     now = datetime.utcnow()
     upload_threshold = None
     upload_comparison = None
@@ -110,7 +107,6 @@ def search_cvs(
     total_cvs = 0
     filtered_cvs = 0
 
-    # Debug: Count total CVs and those that pass each filter
     filter_stats = {
         "total_cvs": 0,
         "completed_processing": 0,
@@ -125,47 +121,39 @@ def search_cvs(
     for cv in db.cvs.find():
         filter_stats["total_cvs"] += 1
         
-        # Check processing status
         if cv.get("processing_status") != "completed":
             continue
         filter_stats["completed_processing"] += 1
         
-        # Get CV text and metadata
         raw_text = cv.get("raw_text") or ""
         cv_tags = [t.lower() for t in cv.get("tags", [])]
         
-        # Tag filter - only apply if tags are explicitly provided
         if required_tags:
             if not all(tag in cv_tags for tag in required_tags):
                 continue
         filter_stats["passed_tag_filter"] += 1
 
-        # Graduation batch filter - only apply if explicitly provided
         batch = cv.get("graduation_batch")
         try:
             batch = int(batch) if batch else None
         except (TypeError, ValueError):
             batch = None
 
-        # Apply reasonable bounds to batch years (1950-2030)
         if batch is not None and (batch < 1950 or batch > 2030):
             batch = None
 
-        # Only apply batch filters if they are explicitly set (not None)
         if batch_min is not None and (batch is None or batch < batch_min):
             continue
         if batch_max is not None and (batch is None or batch > batch_max):
             continue
         filter_stats["passed_batch_filter"] += 1
 
-        # Last education filter - only apply if explicitly provided and not empty
         if last_education and last_education.strip():
             le = (cv.get("last_education") or "").lower()
             if last_education.lower() not in le:
                 continue
         filter_stats["passed_education_filter"] += 1
 
-        # Upload time filter - only apply if explicitly provided and not empty
         upload_time = cv.get("upload_time")
         if isinstance(upload_time, str):
             try:
@@ -173,7 +161,6 @@ def search_cvs(
             except ValueError:
                 upload_time = None
 
-        # Only apply upload range filter if it's explicitly set and valid
         if upload_range and upload_range.strip() and upload_threshold:
             if upload_comparison == "after":
                 if not upload_time or upload_time < upload_threshold:
@@ -183,11 +170,9 @@ def search_cvs(
                     continue
         filter_stats["passed_upload_filter"] += 1
 
-        # Keyword search in raw text
         if search_in_text(raw_text, keywords, mode):
             filter_stats["passed_keyword_filter"] += 1
             
-            # Calculate match score
             score = compute_match_score(
                 cv_text=raw_text,
                 query=query,
@@ -198,7 +183,6 @@ def search_cvs(
                 email=cv.get("email")
             )
             
-            # Include result even if score is 0 for debugging
             result = {
                 "_id": str(cv["_id"]),
                 "user_email": cv.get("user_email"),
@@ -215,14 +199,12 @@ def search_cvs(
                 "last_education": cv.get("last_education"),
                 "graduation_batch": cv.get("graduation_batch"),
                 "tags": cv.get("tags", []),
-                # Add debug info
                 "raw_text_preview": raw_text[:200] + "..." if len(raw_text) > 200 else raw_text,
                 "processing_status": cv.get("processing_status")
             }
             results.append(result)
             filter_stats["final_results"] += 1
 
-    # Sort by match score (descending)
     results.sort(key=lambda x: x["match_score"], reverse=True)
 
     return JSONResponse(content=jsonable_encoder({
@@ -249,7 +231,6 @@ def search_cvs(
         "filter_stats": filter_stats
     }))
 
-# Additional debug endpoint
 @router.get("/debug-cv/{cv_id}")
 def debug_cv(
     cv_id: str,

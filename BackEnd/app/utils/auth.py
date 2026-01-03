@@ -5,18 +5,14 @@ from passlib.context import CryptContext
 from jose import jwt, JWTError
 
 
-# 🔑 Load environment variables from .env file
 load_dotenv()
 
-# ✅ Define JWT_SECRET from environment
 JWT_SECRET = os.getenv("JWT_SECRET")
 ALGORITHM = "HS256"
 
-# ❗Fail early if it's not set
 if not JWT_SECRET:
     raise ValueError("JWT_SECRET is not set in the environment variables")
 
-# ✅ Password hashing config
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str):

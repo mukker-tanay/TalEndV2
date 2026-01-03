@@ -54,12 +54,10 @@ async def upload_cv(
     temp_path = os.path.join(UPLOAD_DIR, temp_filename)
 
     try:
-        # Save temporarily for parsing
         with open(temp_path, "wb") as f:
             content = await file.read()
             f.write(content)
 
-        # Extract name/email/phone for duplicate check
         text = extract_text_from_pdf(temp_path) if ext.lower() == ".pdf" else extract_text_from_docx(temp_path)
         parsed_data = parse_cv_enhanced(text)
 
@@ -70,7 +68,6 @@ async def upload_cv(
         if not email and not phone:
             raise HTTPException(status_code=400, detail="Email or phone number is required in CV for deduplication.")
 
-        # Check for duplicate
         existing_cv = db.cvs.find_one({
             "user_email": user_email,
             "$or": [
@@ -79,7 +76,6 @@ async def upload_cv(
             ]
         })
 
-        # Remove old entry if found
         if existing_cv:
             old_file = existing_cv.get("stored_filename")
             if old_file:
@@ -88,7 +84,6 @@ async def upload_cv(
                     os.remove(old_path)
             db.cvs.delete_one({"_id": existing_cv["_id"]})
 
-        # Final filename after resolving conflicts
         final_filename = original_name
         final_path = os.path.join(UPLOAD_DIR, final_filename)
         counter = 1
@@ -98,7 +93,6 @@ async def upload_cv(
             final_path = os.path.join(UPLOAD_DIR, final_filename)
             counter += 1
 
-        # Rename temp file to final filename
         os.rename(temp_path, final_path)
 
         tags_list = []
@@ -110,7 +104,6 @@ async def upload_cv(
             except Exception:
                 tags_list = []
 
-        # Insert new entry
         db_entry = {
             "user_email": user_email,
             "original_filename": original_name,
@@ -127,7 +120,6 @@ async def upload_cv(
         result = db.cvs.insert_one(db_entry)
         cv_id = str(result.inserted_id)
 
-        # Start background parse
         parse_cv_task.delay(str(cv_id), final_path, original_name)
 
         return {

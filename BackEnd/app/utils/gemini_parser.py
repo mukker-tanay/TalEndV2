@@ -7,9 +7,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 def extract_fields_with_gemini(cv_text: str) -> dict:
-    endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
     headers = {
         "Content-Type": "application/json",
     }
@@ -68,7 +69,6 @@ Resume text:
 
         raw_text = parts[0]["text"].strip()
 
-        # Strip markdown code block if present
         match = re.match(r"```(?:json)?\s*(.*?)\s*```", raw_text, re.DOTALL)
         if match:
             raw_text = match.group(1).strip()

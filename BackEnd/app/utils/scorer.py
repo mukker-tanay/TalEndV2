@@ -15,20 +15,17 @@ def compute_match_score(cv_text: str, query: str, skills=None, position=None, co
     query_tokens = set(clean_and_tokenize(query))
     cv_tokens = set(clean_and_tokenize(cv_text))
 
-    # 1. Text match (Jaccard-based)
     if query_tokens and cv_tokens:
         intersection = len(query_tokens & cv_tokens)
-        jaccard_score = (intersection / len(query_tokens)) * 5  # Scale to 5
+        jaccard_score = (intersection / len(query_tokens)) * 5  
         score += jaccard_score
 
-    # 2. Skill match
     if skills:
         skill_text = ' '.join(skills)
         skill_tokens = set(clean_and_tokenize(skill_text))
         match_count = len(query_tokens & skill_tokens)
-        score += min(2.0, match_count * 0.5)  # 0.5 per skill match
+        score += min(2.0, match_count * 0.5)  
 
-    # 3. Position/Company
     if position:
         position_tokens = set(clean_and_tokenize(position))
         score += min(1.0, len(query_tokens & position_tokens) * 0.5)
@@ -37,7 +34,6 @@ def compute_match_score(cv_text: str, query: str, skills=None, position=None, co
         company_tokens = set(clean_and_tokenize(company))
         score += min(1.0, len(query_tokens & company_tokens) * 0.5)
 
-    # 4. Bonus: name/email (rare)
     bonus_fields = f"{name or ''} {email or ''}"
     bonus_tokens = set(clean_and_tokenize(bonus_fields))
     if query_tokens & bonus_tokens:

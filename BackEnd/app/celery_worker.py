@@ -6,11 +6,11 @@ from celery import Celery
 from app.utils.parser import extract_text_from_pdf, extract_text_from_docx, parse_cv_enhanced
 from app.db.mongodb import db
 from bson import ObjectId
-
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 celery_app = Celery(
     'talend',
-    broker='redis://localhost:6379/0',
-    backend='redis://localhost:6379/0'
+    broker=REDIS_URL,
+    backend=REDIS_URL
 )
 
 @celery_app.task

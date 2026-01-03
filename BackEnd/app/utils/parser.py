@@ -2,7 +2,6 @@ import docx
 import re
 import spacy
 from typing import List, Dict, Optional
-import json
 import os
 import pandas as pd
 import fitz  # pymupdf
@@ -10,15 +9,22 @@ from app.utils.gemini_parser import extract_fields_with_gemini
 
 nlp = spacy.load("en_core_web_sm")
 
+# Base directory (this file is in app/utils/, so go 2 levels up to BackEnd/)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+names_path = os.path.join(BASE_DIR, "../../paired_full_names.csv")
+skills_path = os.path.join(BASE_DIR, "../../LINKEDIN_SKILLS_ORIGINAL.txt")
+colleges_path = os.path.join(BASE_DIR, "../../world-universities.csv")
+
 # Load external datasets
-NAMES_DF = pd.read_csv('C:/Users/tanay/Desktop/Data/College/Summer25/TalEnd/BackEnd/paired_full_names.csv', nrows=50000)
+NAMES_DF = pd.read_csv(names_path, nrows=50000)
 FIRST_NAMES_SET = set(NAMES_DF['First Name'].dropna().str.lower())
 LAST_NAMES_SET = set(NAMES_DF['Last Name'].dropna().str.lower())
 
-with open('C:/Users/tanay/Desktop/Data/College/Summer25/TalEnd/BackEnd/LINKEDIN_SKILLS_ORIGINAL.txt', encoding='utf-8') as f:
+with open(skills_path, encoding='utf-8') as f:
     SKILLS_SET = set(line.strip().lower() for line in f if line.strip())
 
-COLLEGE_DF = pd.read_csv('C:/Users/tanay/Desktop/Data/College/Summer25/TalEnd/BackEnd/world-universities.csv', header=None, names=['country', 'college', 'url'])
+COLLEGE_DF = pd.read_csv(colleges_path, header=None, names=['country', 'college', 'url'])
 COLLEGE_SET = set(COLLEGE_DF['college'].dropna().str.lower())
 
 FORBIDDEN_NAMES = {"chatgpt", "resume", "cv", "profile", "curriculum vitae", "summary", "objective"}
