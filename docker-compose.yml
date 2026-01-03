@@ -15,7 +15,7 @@ services:
     image: redis:latest
     container_name: jobnoc-redis7
     ports:
-      - "127.0.0.1:6379:6379" # Only accessible from localhost
+      - "127.0.0.1:6380:6379" # Map host port 6380 to container port 6379
     restart: always
 
 volumes:
