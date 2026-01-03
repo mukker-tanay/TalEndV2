@@ -8,7 +8,7 @@ services:
     volumes:
       - mongo8_data:/data/db
     ports:
-      - "127.0.0.1:27017:27017" # Only accessible from localhost
+      - "127.0.0.1:27018:27017" # Map host port 27018 to container port 27017
     restart: always
 
   redis7:
