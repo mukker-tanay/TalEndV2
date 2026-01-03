@@ -2,16 +2,17 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 
-# Install dependencies exactly as in lockfile
-RUN npm ci
-
+# Copy source code FIRST
 COPY . .
+
+# Install dependencies (this creates node_modules)
+RUN npm ci
 
 # Build time argument for the API URL
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Use the locally installed next binary, NOT npx (which downloads latest)
+# Use the locally installed next binary
 RUN ./node_modules/.bin/next build
 
 FROM node:20-alpine AS runner
