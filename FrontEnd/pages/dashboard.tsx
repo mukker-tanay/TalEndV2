@@ -31,6 +31,7 @@ export default function Dashboard() {
   const [sliderOpen, setSliderOpen] = useState(false);
   const [sliderIndex, setSliderIndex] = useState(0);
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const role = typeof window !== "undefined" ? localStorage.getItem("role") : null;
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
@@ -187,6 +188,14 @@ export default function Dashboard() {
             >
               Profile Settings
             </button>
+            {role === "admin" && (
+              <button
+                onClick={() => router.push("/admin")}
+                className="text-left w-full py-2.5 px-4 rounded-xl text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 hover:text-indigo-200 font-bold transition-all duration-150 text-sm flex items-center gap-3 border border-indigo-500/20"
+              >
+                Admin Panel
+              </button>
+            )}
           </nav>
         </div>
 
