@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.api import auth, upload, search
 from fastapi.middleware.cors import CORSMiddleware
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.include_router(auth.router)
 app.include_router(upload.router)
 app.include_router(search.router)

