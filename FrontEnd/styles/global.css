@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500/30 selection:text-indigo-200;
+  }
+}
+
 /* Slide-in from right animation */
 @keyframes slide-in-right {
   0% {
@@ -15,7 +21,7 @@
 }
 
 .animate-slide-in-right {
-  animation: slide-in-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: slide-in-right 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes slide-out-right {
@@ -30,29 +36,44 @@
 }
 
 .animate-slide-out-right {
-  animation: slide-out-right 0.3s ease-in-out both;
+  animation: slide-out-right 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Premium glassmorphic cards */
 .cv-card {
-  @apply bg-white shadow-md rounded p-6 border relative;
+  @apply bg-slate-900/60 backdrop-blur-md rounded-xl p-6 border border-slate-800/80 shadow-lg relative transition-all duration-300 hover:border-indigo-500/30 hover:shadow-indigo-500/5 hover:-translate-y-1;
 }
 
 .cv-badge {
-  @apply absolute top-4 right-4 bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full;
+  @apply absolute top-4 right-4 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-bold px-3 py-1 rounded-full shadow-sm;
 }
 
 .cv-info-grid {
-  @apply grid grid-cols-2 gap-4 text-sm mb-3;
+  @apply grid grid-cols-2 gap-4 text-sm mb-3 text-slate-300;
 }
 
 .cv-skill-pill {
-  @apply bg-gray-100 text-gray-700 px-3 py-1 m-1 rounded-full text-xs;
+  @apply bg-slate-800/80 text-slate-300 border border-slate-700/50 px-2.5 py-1 m-0.5 rounded-md text-xs font-medium hover:bg-slate-700/80 transition-colors duration-200;
 }
 
 .cv-name {
-  @apply text-xl font-semibold;
+  @apply text-xl font-bold text-slate-100 tracking-tight;
 }
 
 .cv-meta {
-  @apply text-sm text-gray-600;
+  @apply text-sm text-slate-400 font-medium;
 }
+
+/* Custom premium scrollbar for high density layout */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-950;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+}

@@ -13,3 +13,8 @@ node_modules/
 # Ignore LFS-managed binaries (if you still want LFS later)
 *.zip
 *.tar
+nginx_setup.md
+deployment_guide.md
+recruitment_agency_ideas.md
+
+research_notes.md

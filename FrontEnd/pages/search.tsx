@@ -1,7 +1,7 @@
 import { useState } from "react";
 import CVSlider, { CVType } from "../components/CVSlider";
 import Slider from "rc-slider";
-import { FaFilter } from "react-icons/fa"; 
+import { FaFilter } from "react-icons/fa";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 type SearchResult = {
   _id: string;
@@ -26,10 +26,8 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [sliderOpen, setSliderOpen] = useState(false);
   const [sliderIndex, setSliderIndex] = useState(0);
-  const [showFilters, setShowFilters] = useState(false); // 🔁 Toggle for filters
+  const [showFilters, setShowFilters] = useState(false);
 
-  const currentYear = new Date().getFullYear();
-  
   const [batchMin, setBatchMin] = useState(1950);
   const [batchMax, setBatchMax] = useState(2030);
   const [lastEducation, setLastEducation] = useState("");
@@ -83,7 +81,7 @@ export default function SearchPage() {
       }
 
       const data = await res.json();
-      console.log("Search response:", data); 
+      console.log("Search response:", data);
       setResults(Array.isArray(data.results) ? data.results : []);
     } catch (err) {
       console.error("Search error:", err);
@@ -110,52 +108,54 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow p-4 flex justify-between items-center sticky top-0 z-10">
-        <div className="text-xl font-bold text-blue-600">Talend</div>
-        <div className="space-x-4">
-          <button onClick={() => (window.location.href = "/dashboard")} className="text-sm text-gray-700 hover:text-blue-600">Dashboard</button>
-          <button onClick={() => (window.location.href = "/profile")} className="text-sm text-gray-700 hover:text-blue-600">Profile</button>
-          <button onClick={() => { localStorage.removeItem("token"); window.location.href = "/login"; }} className="text-sm text-red-600 hover:underline">Logout</button>
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <nav className="bg-slate-900 border-b border-slate-800/80 p-4 flex justify-between items-center sticky top-0 z-10 shadow-lg">
+        <div className="text-2xl font-black text-indigo-400 tracking-tight">JobNoc</div>
+        <div className="space-x-3">
+          <button onClick={() => (window.location.href = "/dashboard")} className="text-sm font-semibold text-slate-300 hover:text-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-all duration-150">Dashboard</button>
+          <button onClick={() => (window.location.href = "/profile")} className="text-sm font-semibold text-slate-300 hover:text-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-all duration-150">Profile</button>
+          <button onClick={() => { localStorage.removeItem("token"); window.location.href = "/login"; }} className="text-sm font-semibold text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg hover:bg-red-500/10 transition-all duration-150">Sign Out</button>
         </div>
       </nav>
 
       <div className="px-6 py-10 max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">CV Search</h1>
-        <p className="text-sm text-gray-500 mb-6">Sorted by best match score</p>
+        <header className="mb-8">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-100">CV Sourcing Directory</h1>
+          <p className="text-sm text-slate-400 mt-1">Search through parsed candidate profiles sorted by best matching score</p>
+        </header>
 
-        <form onSubmit={handleSearch} className="flex flex-col gap-4 mb-8 bg-white p-4 rounded shadow">
-          <div className="flex gap-2">
+        <form onSubmit={handleSearch} className="flex flex-col gap-4 mb-8 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+          <div className="flex gap-3">
             <input
               type="text"
               placeholder="Search by keyword (e.g., React, Python, SQL, or person name)"
-              className="flex-grow px-4 py-2 border rounded"
+              className="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               required
             />
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-600/10">
               {loading ? "Searching..." : "Search"}
             </button>
           </div>
 
-          {/* 🔁 Filter toggle */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">Search Filters</span>
-            <div className="flex items-center gap-2">
+          {/* Filter toggle */}
+          <div className="flex items-center justify-between border-t border-slate-800/80 pt-4 mt-2">
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Search Filters</span>
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setShowFilters(!showFilters)}
-                className="text-blue-600 flex items-center gap-1 text-sm"
+                className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1.5 text-xs font-semibold"
               >
-                <FaFilter />
+                <FaFilter className="text-[10px]" />
                 {showFilters ? "Hide Filters" : "Show Filters"}
               </button>
               {showFilters && (
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="text-gray-500 text-xs underline"
+                  className="text-slate-500 hover:text-slate-400 text-xs font-semibold"
                 >
                   Reset All
                 </button>
@@ -163,12 +163,12 @@ export default function SearchPage() {
             </div>
           </div>
 
-          {/* 📂 Filters section (collapsible) */}
+          {/* Filters section */}
           {showFilters && (
-            <div className="flex flex-wrap gap-6 items-center mt-2 p-4 bg-gray-50 rounded">
+            <div className="flex flex-wrap gap-6 items-start mt-2 p-5 bg-slate-950/60 rounded-xl border border-slate-850">
               {/* Batch slider */}
-              <div className="flex flex-col w-full max-w-md">
-                <label className="text-xs font-semibold mb-1">Graduation Batch Year</label>
+              <div className="flex flex-col w-full max-w-sm">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Graduation Batch Year</label>
                 <Slider
                   range
                   min={1950}
@@ -182,44 +182,44 @@ export default function SearchPage() {
                     }
                   }}
                   allowCross={false}
-                  trackStyle={[{ backgroundColor: "#add8e6" }]}
+                  trackStyle={[{ backgroundColor: "#6366f1" }]}
                   handleStyle={[
-                    { borderColor: "#808080", backgroundColor: "#808080" },
-                    { borderColor: "#808080", backgroundColor: "#808080" },
+                    { borderColor: "#6366f1", backgroundColor: "#4f46e5" },
+                    { borderColor: "#6366f1", backgroundColor: "#4f46e5" },
                   ]}
-                  railStyle={{ backgroundColor: "#e0e0e0" }}
-                  style={{ width: "25rem", marginTop: "1rem" }}
+                  railStyle={{ backgroundColor: "#1e293b" }}
+                  style={{ width: "100%", marginTop: "0.5rem" }}
                 />
-                <div className="flex justify-between text-xs mt-1 w-full" style={{ width: "25rem" }}>
+                <div className="flex justify-between text-xs text-slate-400 mt-2 font-semibold">
                   <span>{batchMin}</span>
                   <span>{batchMax}</span>
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {batchMin === 1950 && batchMax === 2030 
-                    ? "All years (no filter)" 
+                <div className="text-xs text-slate-500 mt-1">
+                  {batchMin === 1950 && batchMax === 2030
+                    ? "All years (no active filter)"
                     : `Filtering: ${batchMin} - ${batchMax}`}
                 </div>
               </div>
 
               {/* Last education */}
               <div className="flex flex-col">
-                <label className="text-xs font-semibold mb-1">Last Education</label>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Last Education</label>
                 <input
                   type="text"
                   placeholder="e.g., B.Tech, MBA"
                   value={lastEducation}
                   onChange={(e) => setLastEducation(e.target.value)}
-                  className="border rounded px-2 py-1"
+                  className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500 text-xs transition-all"
                 />
-                <div className="text-xs text-gray-500 mt-1">
-                  {lastEducation.trim() ? `Filter: ${lastEducation}` : "No filter"}
+                <div className="text-xs text-slate-500 mt-1">
+                  {lastEducation.trim() ? `Filter: ${lastEducation}` : "No active filter"}
                 </div>
               </div>
 
               {/* Upload date range */}
               <div className="flex flex-col">
-                <label className="text-xs font-semibold mb-1">Uploaded</label>
-                <div className="flex flex-wrap gap-2 mt-1">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Uploaded Timeline</label>
+                <div className="flex flex-wrap gap-2.5">
                   {[
                     { label: "Within 1 month", value: "1m" },
                     { label: "Within 3 months", value: "3m" },
@@ -228,28 +228,29 @@ export default function SearchPage() {
                     { label: "Within 2 years", value: "2y" },
                     { label: "2+ years ago", value: "2y+" },
                   ].map((opt) => (
-                    <label key={opt.value} className="flex items-center gap-1 text-xs">
+                    <label key={opt.value} className="flex items-center gap-1.5 text-xs text-slate-300 font-semibold cursor-pointer">
                       <input
                         type="radio"
                         name="uploadRange"
                         value={opt.value}
                         checked={uploadRange === opt.value}
                         onChange={() => setUploadRange(opt.value)}
+                        className="accent-indigo-500"
                       />
                       {opt.label}
                     </label>
                   ))}
                   <button
                     type="button"
-                    className="ml-2 text-xs text-gray-500 underline"
+                    className="text-xs text-indigo-400 hover:text-indigo-300 hover:underline font-semibold"
                     onClick={() => setUploadRange("")}
                     style={{ minWidth: 0 }}
                   >
-                    Clear
+                    Clear Filter
                   </button>
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {uploadRange ? `Filter: ${uploadRange}` : "No filter"}
+                <div className="text-xs text-slate-500 mt-1">
+                  {uploadRange ? `Filter: ${uploadRange}` : "No active filter"}
                 </div>
               </div>
             </div>
@@ -257,46 +258,47 @@ export default function SearchPage() {
 
           {/* Show active filters summary */}
           {showFilters && (
-            <div className="text-xs text-gray-600 bg-blue-50 p-2 rounded">
-              <strong>Active Filters:</strong> {
+            <div className="text-xs text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-xl font-semibold">
+              <strong>Active Sourcing Filters:</strong> {
                 [
                   batchMin > 1950 || batchMax < 2030 ? `Batch: ${batchMin}-${batchMax}` : null,
                   lastEducation.trim() ? `Education: ${lastEducation}` : null,
-                  uploadRange ? `Upload: ${uploadRange}` : null
+                  uploadRange ? `Uploaded: ${uploadRange}` : null
                 ].filter(Boolean).join(", ") || "None"
               }
             </div>
           )}
         </form>
 
-        {/* 🔎 Results */}
+        {/* Results */}
         {results.length === 0 && !loading && query && (
-          <p className="text-gray-500 text-sm">No matches found for "{query}".</p>
+          <p className="text-slate-500 text-sm italic">No matching candidate profiles found in JobNoc database for "{query}".</p>
         )}
         {results.length === 0 && !loading && !query && (
-          <p className="text-gray-500 text-sm">Start by entering a search query.</p>
+          <p className="text-slate-500 text-sm italic">Enter technical keywords or candidate credentials in the query box above.</p>
         )}
 
         <div className="grid gap-6">
           {results.map((cv) => (
             <div key={cv._id} className="cv-card relative">
-              <div className="cv-badge">{cv.match_score.toFixed(2)}</div>
-              <div className="mb-2">
-                <h2 className="cv-name">{cv.name || "Unknown"}</h2>
+              <div className="cv-badge">{cv.match_score.toFixed(2)} Match</div>
+              <div className="mb-4">
+                <h2 className="cv-name">{cv.name || "Parsed Candidate Profile"}</h2>
                 <p className="cv-meta">
-                  {cv.email || "N/A"} | {cv.phone || "N/A"}
+                  {cv.email || "No Email Sourced"} | {cv.phone || "No Phone Sourced"}
                 </p>
               </div>
-              <div className="cv-info-grid">
-                <div><strong>Current Employer:</strong> {cv.current_company || "N/A"}</div>
-                <div><strong>Designation:</strong> {cv.current_position || "N/A"}</div>
-                <div><strong>Education:</strong> {cv.last_education}</div>
-                <div><strong>Batch:</strong> {cv.graduation_batch || "N/A"}</div>
+              <div className="cv-info-grid border-t border-slate-800/50 pt-3">
+                <div><span className="text-slate-500 font-semibold uppercase text-[10px] tracking-wider block">Current Employer</span> <span className="font-semibold">{cv.current_company || "N/A"}</span></div>
+                <div><span className="text-slate-500 font-semibold uppercase text-[10px] tracking-wider block">Designation</span> <span className="font-semibold">{cv.current_position || "N/A"}</span></div>
+                <div><span className="text-slate-500 font-semibold uppercase text-[10px] tracking-wider block">Last Education</span> <span className="font-semibold">{cv.last_education || "N/A"}</span></div>
+                <div><span className="text-slate-500 font-semibold uppercase text-[10px] tracking-wider block">Graduation Batch</span> <span className="font-semibold">{cv.graduation_batch || "N/A"}</span></div>
               </div>
+              
               {cv.skills && cv.skills.length > 0 && (
-                <div className="mt-2">
-                  <strong>Skills:</strong>
-                  <div className="flex flex-wrap mt-1">
+                <div className="mt-4 border-t border-slate-800/50 pt-3">
+                  <span className="text-slate-500 font-semibold uppercase text-[10px] tracking-wider block mb-1.5">Sourced Skills</span>
+                  <div className="flex flex-wrap">
                     {cv.skills.map((skill, idx) => (
                       <span key={idx} className="cv-skill-pill">
                         {skill}
@@ -305,18 +307,49 @@ export default function SearchPage() {
                   </div>
                 </div>
               )}
-              <div className="mt-4">
-                <button onClick={() => openSlider(cv)} className="text-blue-600 text-sm underline">
-                  View CV
+
+              {/* Direct Recruiter Actions */}
+              <div className="flex items-center gap-2 mt-5 pt-4 border-t border-slate-800/80">
+                {cv.email && (
+                  <a
+                    href={`mailto:${cv.email}`}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/10 transition-all"
+                  >
+                    Email Candidate
+                  </a>
+                )}
+                {cv.phone && (
+                  <>
+                    <a
+                      href={`https://wa.me/${cv.phone.replace(/[^\d]/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/10 transition-all"
+                    >
+                      WhatsApp Sourcing
+                    </a>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(cv.phone);
+                        alert("Phone number copied to clipboard");
+                      }}
+                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-semibold transition-all"
+                    >
+                      Copy Mobile Number
+                    </button>
+                  </>
+                )}
+                <button 
+                  onClick={() => openSlider(cv)} 
+                  className="px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-indigo-400 hover:text-indigo-300 text-xs font-semibold transition-all ml-auto"
+                >
+                  Open PDF Document
                 </button>
               </div>
+
               {cv.upload_time && (
-                <div className="absolute bottom-2 right-4 text-xs text-gray-500">
-                  Uploaded: {new Date(cv.upload_time).toLocaleDateString()}{" "}
-                  {new Date(cv.upload_time).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                <div className="absolute bottom-2 right-4 text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                  Uploaded: {new Date(cv.upload_time).toLocaleDateString()}
                 </div>
               )}
             </div>
@@ -334,4 +367,4 @@ export default function SearchPage() {
       )}
     </div>
   );
-}
+}
