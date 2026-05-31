@@ -30,8 +30,15 @@ export default function Dashboard() {
   const [message, setMessage] = useState("");
   const [sliderOpen, setSliderOpen] = useState(false);
   const [sliderIndex, setSliderIndex] = useState(0);
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const role = typeof window !== "undefined" ? localStorage.getItem("role") : null;
+  
+  const [token, setToken] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    setToken(localStorage.getItem("token"));
+    setRole(localStorage.getItem("role"));
+  }, []);
+
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
