@@ -35,17 +35,24 @@ export default function Dashboard() {
   const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
-    setToken(localStorage.getItem("token"));
-    setRole(localStorage.getItem("role"));
+    const savedToken = localStorage.getItem("token");
+    const savedRole = localStorage.getItem("role");
+    setToken(savedToken);
+    setRole(savedRole);
+
+    if (!savedToken) {
+      router.push("/login");
+    }
   }, []);
 
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
   useEffect(() => {
-    if (!token) router.push("/login");
-    else fetchCVs();
-  }, []);
+    if (token) {
+      fetchCVs();
+    }
+  }, [token]);
 
   const fetchCVs = async () => {
     try {
