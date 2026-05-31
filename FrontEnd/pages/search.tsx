@@ -2,7 +2,7 @@ import { useState } from "react";
 import CVSlider, { CVType } from "../components/CVSlider";
 import Slider from "rc-slider";
 import { FaFilter } from "react-icons/fa";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? 'https://' + window.location.hostname + '/api' : 'http://localhost:8000');
 type SearchResult = {
   _id: string;
   name?: string;
