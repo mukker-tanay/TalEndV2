@@ -125,19 +125,25 @@ export default function SearchPage() {
         </header>
 
         <form onSubmit={handleSearch} className="flex flex-col gap-4 mb-8 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-          <div className="flex gap-3">
-            <input
-              type="text"
-              placeholder="Search by keyword (e.g., React, Python, SQL, or person name)"
-              className="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              required
-            />
-            <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-600/10">
-              {loading ? "Searching..." : "Search"}
-            </button>
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-3">
+              <input
+                type="text"
+                placeholder="Search by conversational prompt (e.g., Python developer with 3 years of experience) or keywords..."
+                className="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all text-sm"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                required
+              />
+              <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-600/10 text-sm">
+                {loading ? "Searching..." : "Search"}
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-500 font-medium px-1">
+              Tip: You can use plain English conversational queries. JobNoc AI will automatically translate and filter by experience, skills, and background.
+            </p>
           </div>
+
 
           {/* Filter toggle */}
           <div className="flex items-center justify-between border-t border-slate-800/80 pt-4 mt-2">

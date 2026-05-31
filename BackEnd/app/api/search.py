@@ -9,6 +9,7 @@ import re
 from app.db.mongodb import db
 from app.utils.auth import decode_token
 from app.utils.scorer import compute_match_score
+from app.utils.query_translator import translate_conversational_query
 
 router = APIRouter()
 security = HTTPBearer()
@@ -60,7 +61,7 @@ def search_in_text(text: str, keywords: list, mode: str) -> bool:
 
 @router.get("/search-cvs")
 def search_cvs(
-    query: str = Query(..., description="Boolean query: e.g., 'python AND flask' or 'react OR nextjs'"),
+    query: str = Query(..., description="Conversational query or keyword boolean string"),
     tags: Optional[str] = Query(None, description="Comma-separated list of tags to filter by"),
     batch_min: Optional[int] = Query(None, description="Minimum graduation batch year (1950-2030)"),
     batch_max: Optional[int] = Query(None, description="Maximum graduation batch year (1950-2030)"),
@@ -73,7 +74,21 @@ def search_cvs(
     if not user_data:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    keywords, mode = parse_boolean_query(query)
+    # Run the query through our semantic translator first
+    translation = translate_conversational_query(query)
+    is_conversational = translation.get("is_conversational", False)
+
+    if is_conversational:
+        keywords = translation.get("keywords", [])
+        mode = "OR" if len(keywords) > 1 else "AND"
+        semantic_skills = [s.lower() for s in translation.get("skills", [])]
+        semantic_exp_min = translation.get("experience_min")
+        semantic_edu_kws = [e.lower() for e in translation.get("education_keywords", [])]
+    else:
+        keywords, mode = parse_boolean_query(query)
+        semantic_skills = []
+        semantic_exp_min = None
+        semantic_edu_kws = []
     
     required_tags = []
     if tags and tags.strip():
@@ -127,6 +142,7 @@ def search_cvs(
         
         raw_text = cv.get("raw_text") or ""
         cv_tags = [t.lower() for t in cv.get("tags", [])]
+        cv_skills = [s.lower() for s in cv.get("skills", [])]
         
         if required_tags:
             if not all(tag in cv_tags for tag in required_tags):
@@ -148,11 +164,33 @@ def search_cvs(
             continue
         filter_stats["passed_batch_filter"] += 1
 
+        # Education filter - fallback to semantic keywords if no explicit parameter passed
         if last_education and last_education.strip():
             le = (cv.get("last_education") or "").lower()
             if last_education.lower() not in le:
                 continue
+        elif is_conversational and semantic_edu_kws:
+            le = (cv.get("last_education") or "").lower()
+            if not any(edu in le for edu in semantic_edu_kws):
+                continue
         filter_stats["passed_education_filter"] += 1
+
+        # Semantic Sourcing Filters
+        # Experience constraints
+        cv_exp = cv.get("total_experience_years")
+        try:
+            cv_exp = int(cv_exp) if cv_exp is not None else 0
+        except (TypeError, ValueError):
+            cv_exp = 0
+
+        if is_conversational and semantic_exp_min is not None:
+            if cv_exp < semantic_exp_min:
+                continue
+
+        # Technical skills constraints
+        if is_conversational and semantic_skills:
+            if not any(skill in cv_skills or skill in raw_text.lower() for skill in semantic_skills):
+                continue
 
         upload_time = cv.get("upload_time")
         if isinstance(upload_time, str):
@@ -213,6 +251,12 @@ def search_cvs(
             "query": query,
             "keywords": keywords,
             "mode": mode,
+            "is_conversational": is_conversational,
+            "semantic_extracted": {
+                "skills": semantic_skills,
+                "experience_min": semantic_exp_min,
+                "education_keywords": semantic_edu_kws
+            } if is_conversational else None,
             "filters_applied": {
                 "tags": tags if tags and tags.strip() else None,
                 "batch_min": batch_min,
@@ -230,6 +274,7 @@ def search_cvs(
         },
         "filter_stats": filter_stats
     }))
+
 
 @router.get("/debug-cv/{cv_id}")
 def debug_cv(
