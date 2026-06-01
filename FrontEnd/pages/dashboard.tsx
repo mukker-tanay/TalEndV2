@@ -189,9 +189,9 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 p-6 flex flex-col justify-between">
+      <aside className="w-64 bg-gray-50 border-r border-gray-200 p-6 flex flex-col justify-between">
         <div>
           <div className="mb-10 px-2">
             <h1 className="text-2xl font-black text-gray-900 tracking-tight">JobNoc</h1>
@@ -238,7 +238,7 @@ export default function Dashboard() {
         </header>
 
         {/* Uploader Card */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8 max-w-2xl shadow-sm">
+        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-8 max-w-2xl shadow-sm">
           <form onSubmit={handleUpload}>
             <label className="block mb-2 text-sm font-bold text-gray-700 uppercase tracking-wider">Upload Candidate CV (PDF, DOCX, or ZIP)</label>
             <div className="border-2 border-dashed border-gray-300 hover:border-gray-400 rounded-xl p-6 text-center transition-all duration-200 bg-gray-50">
@@ -261,7 +261,7 @@ export default function Dashboard() {
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleTagInput}
                   placeholder="Type a tag and press Enter to save"
-                  className="block w-full bg-white border border-gray-300 rounded-xl px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-all"
+                  className="block w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-all"
                 />
                 <div className="flex flex-wrap mt-2.5 gap-1.5">
                   {tags.map((tag) => (
@@ -302,10 +302,10 @@ export default function Dashboard() {
           <p className="text-xs text-gray-500 mt-0.5">List of all parsed candidates sorted by upload timeline</p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden max-w-4xl shadow-sm">
+        <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden max-w-4xl shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
-              <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold text-xs tracking-wider uppercase">
+              <thead className="bg-gray-100 border-b border-gray-200 text-gray-600 font-semibold text-xs tracking-wider uppercase">
                 <tr>
                   <th className="p-4">Candidate Name</th>
                   <th className="p-4">Status</th>
@@ -316,7 +316,7 @@ export default function Dashboard() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {cvList.map((cv) => (
-                  <tr key={cv.id} className="hover:bg-gray-50 transition-all duration-150">
+                  <tr key={cv.id} className="hover:bg-gray-100 transition-all duration-150">
                     <td className="p-4 font-semibold text-gray-900">
                       {cv.name || <span className="text-gray-400 font-normal italic">Name pending parsing</span>}
                     </td>

@@ -126,8 +126,8 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <nav className="bg-white border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+    <div className="min-h-screen bg-gray-100 text-gray-900">
+      <nav className="bg-gray-50 border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
         <div className="text-2xl font-black text-gray-900 tracking-tight">JobNoc</div>
         <div className="space-x-3">
           <button onClick={() => (window.location.href = "/dashboard")} className="text-sm font-semibold text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-all duration-150">Dashboard</button>
@@ -142,13 +142,13 @@ export default function SearchPage() {
           <p className="text-sm text-gray-500 mt-1">Search through parsed candidate profiles sorted by best matching score</p>
         </header>
 
-        <form onSubmit={handleSearch} className="flex flex-col gap-4 mb-8 bg-white border border-gray-200 p-6 rounded-2xl shadow-sm">
+        <form onSubmit={handleSearch} className="flex flex-col gap-4 mb-8 bg-gray-50 border border-gray-200 p-6 rounded-2xl shadow-sm">
           <div className="flex flex-col gap-2">
             <div className="flex gap-3">
               <input
                 type="text"
                 placeholder="Search by conversational prompt (e.g., Python developer with 3 years of experience) or keywords..."
-                className="flex-grow bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
+                className="flex-grow bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 required
@@ -189,7 +189,7 @@ export default function SearchPage() {
 
           {/* Filters section */}
           {showFilters && (
-            <div className="flex flex-wrap gap-6 items-start mt-2 p-5 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex flex-wrap gap-6 items-start mt-2 p-5 bg-gray-100 rounded-xl border border-gray-200">
               {/* Batch slider */}
               <div className="flex flex-col w-full max-w-sm">
                 <label className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Graduation Batch Year</label>
@@ -233,7 +233,7 @@ export default function SearchPage() {
                   placeholder="e.g., B.Tech, MBA"
                   value={lastEducation}
                   onChange={(e) => setLastEducation(e.target.value)}
-                  className="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-xs transition-all"
+                  className="bg-gray-50 border border-gray-300 rounded-lg px-3 py-1.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-xs transition-all"
                 />
                 <div className="text-xs text-gray-500 mt-1">
                   {lastEducation.trim() ? `Filter: ${lastEducation}` : "No active filter"}
@@ -304,7 +304,7 @@ export default function SearchPage() {
 
         <div className="grid gap-6">
           {results.map((cv) => (
-            <div key={cv._id} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative">
+            <div key={cv._id} className="bg-gray-50 border border-gray-200 rounded-2xl p-6 shadow-sm relative">
               <div className="absolute top-6 right-6 bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-full text-xs font-bold">
                 {cv.match_score.toFixed(2)} Match
               </div>
@@ -359,7 +359,7 @@ export default function SearchPage() {
                         navigator.clipboard.writeText(cv.phone!);
                         alert("Phone number copied to clipboard");
                       }}
-                      className="px-4 py-2 rounded-xl bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold transition-all"
+                      className="px-4 py-2 rounded-xl bg-gray-50 border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs font-semibold transition-all"
                     >
                       Copy Mobile Number
                     </button>

@@ -118,12 +118,12 @@ export default function AdminDashboard() {
     router.push("/");
   };
 
-  if (loading) return <div className="h-screen bg-gray-50 text-gray-500 flex items-center justify-center font-semibold">Loading Admin Panel...</div>;
+  if (loading) return <div className="h-screen bg-gray-100 text-gray-500 flex items-center justify-center font-semibold">Loading Admin Panel...</div>;
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 p-6 flex flex-col justify-between">
+      <aside className="w-64 bg-gray-50 border-r border-gray-200 p-6 flex flex-col justify-between">
         <div>
           <div className="mb-10 px-2">
             <h1 className="text-2xl font-black text-gray-900 tracking-tight">JobNoc</h1>
@@ -163,7 +163,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Create User Form */}
           <div className="xl:col-span-1">
-            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm sticky top-8">
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 shadow-sm sticky top-8">
               <h2 className="text-lg font-bold text-gray-900 mb-4">Provision New Account</h2>
               
               <form onSubmit={handleCreateUser} className="space-y-4">
@@ -174,7 +174,7 @@ export default function AdminDashboard() {
                     required
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    className="w-full bg-white border border-gray-300 rounded-xl px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all text-sm"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all text-sm"
                     placeholder="Jane Doe"
                   />
                 </div>
@@ -186,7 +186,7 @@ export default function AdminDashboard() {
                     required
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
-                    className="w-full bg-white border border-gray-300 rounded-xl px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all text-sm"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all text-sm"
                     placeholder="jane@agency.com"
                   />
                 </div>
@@ -198,7 +198,7 @@ export default function AdminDashboard() {
                   <select 
                     value={newRole} 
                     onChange={(e) => setNewRole(e.target.value)}
-                    className="w-full bg-white border border-gray-300 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all text-sm appearance-none"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2 text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all text-sm appearance-none"
                   >
                     <option value="user">Standard User (Recruiter)</option>
                     <option value="admin">Administrator</option>
@@ -223,16 +223,16 @@ export default function AdminDashboard() {
 
           {/* User Ledger */}
           <div className="xl:col-span-2">
-            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-              <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-100">
                 <h2 className="text-lg font-bold text-gray-900">Registered Users Ledger</h2>
-                <span className="text-xs font-bold text-gray-600 bg-white px-3 py-1 rounded-full border border-gray-200">
+                <span className="text-xs font-bold text-gray-600 bg-gray-50 px-3 py-1 rounded-full border border-gray-200">
                   {users.length} Total
                 </span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left border-collapse">
-                  <thead className="bg-white border-b border-gray-200 text-gray-600 font-bold text-xs tracking-wider uppercase">
+                  <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-bold text-xs tracking-wider uppercase">
                     <tr>
                       <th className="p-4">Name</th>
                       <th className="p-4">Email Address</th>
@@ -240,9 +240,9 @@ export default function AdminDashboard() {
                       <th className="p-4 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-200">
                     {users.map((u, i) => (
-                      <tr key={i} className="hover:bg-gray-50 transition-all duration-150">
+                      <tr key={i} className="hover:bg-gray-100 transition-all duration-150">
                         <td className="p-4 font-semibold text-gray-900">
                           {u.name || "Unknown"}
                         </td>
