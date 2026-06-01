@@ -23,28 +23,13 @@ def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(securi
     
     return db_user
 
-@router.post("/auth/register")
-def register(user: UserCreate):
-    if users.find_one({"email": user.email}):
-        raise HTTPException(status_code=400, detail="Email already registered")
-    users.insert_one({
-        "name": user.name,
-        "email": user.email,
-        "hashed_password": hash_password(user.password),
-        "role": "user"  # Default role
-    })
-    return {"msg": "User registered successfully"}
+
 
 @router.post("/auth/login")
 def login(user: UserLogin):
     db_user = users.find_one({"email": user.email})
     if not db_user or not verify_password(user.password, db_user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-        
-    # Automatically upgrade this specific account to admin upon login
-    if user.email == "tanaymukker@gmail.com" and db_user.get("role") != "admin":
-        users.update_one({"email": user.email}, {"$set": {"role": "admin"}})
-        db_user["role"] = "admin"
         
     token = create_access_token({"sub": user.email})
     return {
@@ -96,11 +81,4 @@ def admin_update_role(email: str, role_update: RoleUpdate, admin_user = Depends(
         
     return {"msg": f"User {email} role updated to {role_update.role}"}
 
-# TODO: Remove this endpoint after upgrading your first account!
-@router.post("/auth/admin/bootstrap")
-def bootstrap_admin(email: str):
-    user = users.find_one({"email": email})
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found. Please register first.")
-    users.update_one({"email": email}, {"$set": {"role": "admin"}})
-    return {"msg": f"User {email} is now an admin. Please remove this endpoint in production!"}
+

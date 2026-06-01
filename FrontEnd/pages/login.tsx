@@ -81,12 +81,6 @@ export default function Login() {
           Sign In
         </button>
 
-        <p className="mt-6 text-center text-xs text-slate-400">
-          Not registered?{' '}
-          <a href="/register" className="text-indigo-400 hover:underline font-medium">
-            Create account
-          </a>
-        </p>
       </form>
     </div>
   );
