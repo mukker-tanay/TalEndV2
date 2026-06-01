@@ -23,8 +23,8 @@ export default function Register() {
 
       if (!res.ok) throw new Error(data.detail || "Registration failed");
 
-      localStorage.setItem("token", data.token);
-      router.push("/dashboard");
+      // Registration successful, redirect to login so they can authenticate
+      router.push("/login");
     } catch (err: any) {
       setError(err.message);
     }
