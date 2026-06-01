@@ -6,8 +6,14 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
 
-class AdminUserCreate(UserCreate):
+class AdminUserCreate(BaseModel):
+    name: str                
+    email: EmailStr
     role: Optional[str] = "user"
+
+class PasswordChange(BaseModel):
+    old_password: str
+    new_password: str
 
 class UserLogin(BaseModel):
     email: EmailStr

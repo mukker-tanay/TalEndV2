@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from app.models.user import UserCreate, UserLogin, AdminUserCreate
+from app.models.user import UserCreate, UserLogin, AdminUserCreate, PasswordChange
 from app.utils.auth import hash_password, verify_password, create_access_token, decode_token
 from app.db.mongodb import db
 
@@ -35,8 +35,31 @@ def login(user: UserLogin):
     return {
         "access_token": token, 
         "token_type": "bearer",
-        "role": db_user.get("role", "user")
+        "role": db_user.get("role", "user"),
+        "require_password_change": db_user.get("must_change_password", False)
     }
+
+@router.post("/auth/change-password")
+def change_password(passwords: PasswordChange, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    user_data = decode_token(token)
+    user_email = user_data.get("sub")
+    
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        
+    db_user = users.find_one({"email": user_email})
+    if not db_user or not verify_password(passwords.old_password, db_user["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Invalid old password")
+        
+    users.update_one(
+        {"email": user_email},
+        {"$set": {
+            "hashed_password": hash_password(passwords.new_password),
+            "must_change_password": False
+        }}
+    )
+    return {"msg": "Password updated successfully"}
 
 @router.get("/auth/admin/users")
 def get_all_users(admin_user = Depends(get_current_admin)):
@@ -58,8 +81,9 @@ def admin_create_user(user: AdminUserCreate, admin_user = Depends(get_current_ad
     users.insert_one({
         "name": user.name,
         "email": user.email,
-        "hashed_password": hash_password(user.password),
-        "role": user.role if user.role else "user"
+        "hashed_password": hash_password("test@1234"),
+        "role": user.role if user.role else "user",
+        "must_change_password": True
     })
     return {"msg": f"User {user.email} created successfully with role {user.role}"}
 

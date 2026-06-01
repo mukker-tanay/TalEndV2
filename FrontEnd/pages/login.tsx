@@ -28,8 +28,14 @@ export default function Login() {
 
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("role", data.role || "user");
-      console.log("Token saved:", data.access_token);
-      router.push("/dashboard");
+      
+      if (data.require_password_change) {
+        localStorage.setItem("require_password_change", "true");
+        router.push("/change-password");
+      } else {
+        localStorage.removeItem("require_password_change");
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message);
     }

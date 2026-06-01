@@ -37,7 +37,19 @@ export default function SearchPage() {
   const [lastEducation, setLastEducation] = useState("");
   const [uploadRange, setUploadRange] = useState<string>("");
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const savedToken = localStorage.getItem("token");
+    const requirePassChange = localStorage.getItem("require_password_change");
+    setToken(savedToken);
+
+    if (!savedToken) {
+      router.push("/login");
+    } else if (requirePassChange === "true") {
+      router.push("/change-password");
+    }
+  }, [router]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();

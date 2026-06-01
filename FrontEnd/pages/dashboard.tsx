@@ -41,11 +41,16 @@ export default function Dashboard() {
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
     const savedRole = localStorage.getItem("role");
+    const requirePassChange = localStorage.getItem("require_password_change");
     setToken(savedToken);
     setRole(savedRole);
 
     if (!savedToken) {
       router.push("/login");
+    } else if (requirePassChange) {
+      router.push("/change-password");
+    } else {
+      fetchCVs();
     }
   }, []);
 
