@@ -42,23 +42,23 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <form
         onSubmit={handleLogin}
-        className="bg-slate-900/60 backdrop-blur-md p-8 rounded-2xl border border-slate-800 shadow-2xl w-full max-w-md transition-all duration-300 hover:border-slate-700/80"
+        className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm w-full max-w-md transition-all duration-300"
       >
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-extrabold text-slate-100 tracking-tight">JobNoc Portal</h2>
-          <p className="mt-2 text-sm text-slate-400">Enter recruiter credentials to access</p>
+          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">JobNoc Portal</h2>
+          <p className="mt-2 text-sm text-gray-500">Enter recruiter credentials to access</p>
         </div>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Email Address</label>
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Email Address</label>
             <input
               type="email"
               placeholder="recruiter@agency.com"
-              className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-200"
+              className="w-full bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -66,11 +66,11 @@ export default function Login() {
           </div>
           
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Password</label>
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Password</label>
             <input
               type="password"
               placeholder="••••••••"
-              className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-200"
+              className="w-full bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -78,11 +78,11 @@ export default function Login() {
           </div>
         </div>
 
-        {error && <p className="text-red-400 mt-4 text-xs font-medium bg-red-500/10 border border-red-500/20 p-2.5 rounded-lg">{error}</p>}
+        {error && <p className="text-red-600 mt-4 text-xs font-medium bg-red-50 border border-red-200 p-2.5 rounded-lg">{error}</p>}
         
         <button
           type="submit"
-          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl mt-6 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-500/30 transition-all duration-200"
+          className="w-full bg-gray-900 hover:bg-black text-white font-semibold py-2.5 rounded-xl mt-6 shadow-sm transition-all duration-200"
         >
           Sign In
         </button>

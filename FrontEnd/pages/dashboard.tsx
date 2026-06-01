@@ -189,32 +189,32 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-950">
+    <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 border-r border-slate-800/80 p-6 flex flex-col justify-between">
+      <aside className="w-64 bg-white border-r border-gray-200 p-6 flex flex-col justify-between">
         <div>
           <div className="mb-10 px-2">
-            <h1 className="text-2xl font-black text-indigo-400 tracking-tight">JobNoc</h1>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold mt-1">Consultancy Admin</p>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">JobNoc</h1>
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mt-1">Consultancy Admin</p>
           </div>
           
           <nav className="space-y-1.5">
             <button
               onClick={() => router.push("/search")}
-              className="text-left w-full py-2.5 px-4 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-slate-100 font-semibold transition-all duration-150 text-sm flex items-center gap-3"
+              className="text-left w-full py-2.5 px-4 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 font-semibold transition-all duration-150 text-sm flex items-center gap-3"
             >
               Search Database
             </button>
             <button
               onClick={() => alert("Profile configurations are not active")}
-              className="text-left w-full py-2.5 px-4 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-slate-100 font-semibold transition-all duration-150 text-sm flex items-center gap-3"
+              className="text-left w-full py-2.5 px-4 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 font-semibold transition-all duration-150 text-sm flex items-center gap-3"
             >
               Profile Settings
             </button>
             {role === "admin" && (
               <button
                 onClick={() => router.push("/admin")}
-                className="text-left w-full py-2.5 px-4 rounded-xl text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 hover:text-indigo-200 font-bold transition-all duration-150 text-sm flex items-center gap-3 border border-indigo-500/20"
+                className="text-left w-full py-2.5 px-4 rounded-xl text-blue-700 bg-blue-50 hover:bg-blue-100 hover:text-blue-800 font-bold transition-all duration-150 text-sm flex items-center gap-3 border border-blue-100"
               >
                 Admin Panel
               </button>
@@ -224,7 +224,7 @@ export default function Dashboard() {
 
         <button
           onClick={handleLogout}
-          className="text-left w-full py-2.5 px-4 text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-xl font-semibold transition-all duration-150 text-sm flex items-center gap-3"
+          className="text-left w-full py-2.5 px-4 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl font-semibold transition-all duration-150 text-sm flex items-center gap-3"
         >
           Sign Out
         </button>
@@ -233,19 +233,19 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-8 lg:p-10">
         <header className="mb-8">
-          <h1 className="text-3xl font-extrabold text-slate-100 tracking-tight">Recruiter Workspace</h1>
-          <p className="text-sm text-slate-400 mt-1">Easily store and manage parsed resumes inside your proprietary pool</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Recruiter Workspace</h1>
+          <p className="text-sm text-gray-500 mt-1">Easily store and manage parsed resumes inside your proprietary pool</p>
         </header>
 
         {/* Uploader Card */}
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 mb-8 max-w-2xl">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8 max-w-2xl shadow-sm">
           <form onSubmit={handleUpload}>
-            <label className="block mb-2 text-sm font-semibold text-slate-300 uppercase tracking-wider">Upload Candidate CV (PDF, DOCX, or ZIP)</label>
-            <div className="border-2 border-dashed border-slate-800 hover:border-indigo-500/40 rounded-xl p-6 text-center transition-all duration-200 bg-slate-950/40">
+            <label className="block mb-2 text-sm font-bold text-gray-700 uppercase tracking-wider">Upload Candidate CV (PDF, DOCX, or ZIP)</label>
+            <div className="border-2 border-dashed border-gray-300 hover:border-gray-400 rounded-xl p-6 text-center transition-all duration-200 bg-gray-50">
               <input
                 type="file"
                 accept=".pdf,.doc,.docx,.zip"
-                className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-700 cursor-pointer"
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 cursor-pointer"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
                 required
               />
@@ -254,25 +254,25 @@ export default function Dashboard() {
             {/* Show tags only if not zip */}
             {file && !file.name.endsWith(".zip") && (
               <div className="mt-4">
-                <label className="block mb-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Classification Tags</label>
+                <label className="block mb-1.5 text-xs font-bold text-gray-700 uppercase tracking-wider">Classification Tags</label>
                 <input
                   type="text"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleTagInput}
                   placeholder="Type a tag and press Enter to save"
-                  className="block w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
+                  className="block w-full bg-white border border-gray-300 rounded-xl px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-all"
                 />
                 <div className="flex flex-wrap mt-2.5 gap-1.5">
                   {tags.map((tag) => (
                     <span
                       key={tag}
-                      className="inline-flex items-center bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 px-2.5 py-0.5 rounded-md text-xs font-medium"
+                      className="inline-flex items-center bg-gray-100 border border-gray-200 text-gray-700 px-2.5 py-0.5 rounded-md text-xs font-medium"
                     >
                       {tag}
                       <button
                         type="button"
-                        className="ml-2 text-indigo-400 hover:text-red-400 font-bold"
+                        className="ml-2 text-gray-400 hover:text-red-500 font-bold"
                         onClick={() => removeTag(tag)}
                       >
                         x
@@ -284,11 +284,11 @@ export default function Dashboard() {
             )}
 
             <div className="flex items-center gap-4 mt-6">
-              <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl font-semibold shadow-lg shadow-indigo-600/10 transition-all duration-200">
+              <button type="submit" className="bg-gray-900 hover:bg-black text-white px-5 py-2 rounded-xl font-semibold shadow-sm transition-all duration-200">
                 Parse Resume
               </button>
               {message && (
-                <span className="text-xs font-medium text-slate-300 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/50">
+                <span className="text-xs font-medium text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">
                   {message}
                 </span>
               )}
@@ -298,14 +298,14 @@ export default function Dashboard() {
 
         {/* High-Density Ledger Table */}
         <div className="mb-4">
-          <h2 className="text-xl font-bold text-slate-100 tracking-tight">Sourced Candidate Ledger</h2>
-          <p className="text-xs text-slate-400 mt-0.5">List of all parsed candidates sorted by upload timeline</p>
+          <h2 className="text-xl font-bold text-gray-900 tracking-tight">Sourced Candidate Ledger</h2>
+          <p className="text-xs text-gray-500 mt-0.5">List of all parsed candidates sorted by upload timeline</p>
         </div>
 
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden max-w-4xl shadow-xl">
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden max-w-4xl shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
-              <thead className="bg-slate-800/60 border-b border-slate-800 text-slate-300 font-semibold text-xs tracking-wider uppercase">
+              <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold text-xs tracking-wider uppercase">
                 <tr>
                   <th className="p-4">Candidate Name</th>
                   <th className="p-4">Status</th>
@@ -314,19 +314,19 @@ export default function Dashboard() {
                   <th className="p-4 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-850">
+              <tbody className="divide-y divide-gray-200">
                 {cvList.map((cv) => (
-                  <tr key={cv.id} className="hover:bg-slate-800/20 transition-all duration-150">
-                    <td className="p-4 font-semibold text-slate-200">
-                      {cv.name || <span className="text-slate-500 font-normal italic">Name pending parsing</span>}
+                  <tr key={cv.id} className="hover:bg-gray-50 transition-all duration-150">
+                    <td className="p-4 font-semibold text-gray-900">
+                      {cv.name || <span className="text-gray-400 font-normal italic">Name pending parsing</span>}
                     </td>
                     <td className="p-4">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
                         cv.status === "completed" 
-                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/25" 
+                          ? "bg-green-100 text-green-700 border border-green-200" 
                           : cv.status === "error" 
-                          ? "bg-red-500/10 text-red-400 border border-red-500/25" 
-                          : "bg-amber-500/10 text-amber-400 border border-amber-500/25"
+                          ? "bg-red-100 text-red-700 border border-red-200" 
+                          : "bg-yellow-100 text-yellow-700 border border-yellow-200"
                       }`}>
                         {cv.status}
                       </span>
@@ -335,22 +335,22 @@ export default function Dashboard() {
                       {cv.tags && cv.tags.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {cv.tags.map((tag) => (
-                            <span key={tag} className="bg-slate-850 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md text-[10px] font-semibold">
+                            <span key={tag} className="bg-gray-100 text-gray-700 border border-gray-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
                               {tag}
                             </span>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-slate-500 text-xs">No tags</span>
+                        <span className="text-gray-400 text-xs">No tags</span>
                       )}
                     </td>
-                    <td className="p-4 text-slate-400 text-xs">
+                    <td className="p-4 text-gray-500 text-xs">
                       {new Date(cv.uploaded_at).toLocaleDateString()}
                     </td>
                     <td className="p-4 text-right">
                       <button 
                         onClick={() => openSlider(cv)} 
-                        className="text-indigo-400 hover:text-indigo-300 font-semibold hover:underline text-xs"
+                        className="text-blue-600 hover:text-blue-700 font-semibold hover:underline text-xs"
                       >
                         Open Profile
                       </button>
@@ -359,7 +359,7 @@ export default function Dashboard() {
                 ))}
                 {cvList.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-slate-500 italic">
+                    <td colSpan={5} className="p-8 text-center text-gray-500 italic">
                       No CV files parsed yet. Drag and drop a file above to begin.
                     </td>
                   </tr>

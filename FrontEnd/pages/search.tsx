@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CVSlider, { CVType } from "../components/CVSlider";
 import Slider from "rc-slider";
 import { FaFilter } from "react-icons/fa";
