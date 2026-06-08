@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+let API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+if (typeof window !== "undefined" && window.location.hostname === "jobnoc.com") {
+  API_URL = "https://jobnoc.com/api";
+}
 
 export type CVType = {
   _id: string;
@@ -23,14 +26,58 @@ type CVSliderProps = {
 };
 
 const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClose }) => {
-  if (!cvList.length) return null;
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
 
   const cv = cvList[current];
-  const isPDF = cv?.stored_filename?.toLowerCase().endsWith(".pdf");
-  const isDOC = /\.(docx?|rtf)$/i.test(cv?.stored_filename || "");
-  const embedUrl = isPDF
-    ? `${API_URL}/cv/preview/${cv.stored_filename}`
+  const storedFilename = cv?.stored_filename ?? "";
+  const isPDF = storedFilename.toLowerCase().endsWith(".pdf");
+  const isDOC = /\.(docx?|rtf)$/i.test(storedFilename);
+  const previewUrl = isPDF
+    ? `${API_URL}/cv/preview/${encodeURIComponent(storedFilename)}`
     : "";
+
+  useEffect(() => {
+    if (!isPDF || !storedFilename) {
+      setPdfBlobUrl(null);
+      setPdfLoading(false);
+      setPdfError(false);
+      return;
+    }
+
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    setPdfLoading(true);
+    setPdfError(false);
+    setPdfBlobUrl(null);
+
+    fetch(previewUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load PDF");
+        return res.blob();
+      })
+      .then((blob) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPdfBlobUrl(objectUrl);
+        setPdfLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPdfError(true);
+          setPdfLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [storedFilename, isPDF, previewUrl]);
+
+  if (!cvList.length || !cv) return null;
 
   const goPrev = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -43,23 +90,23 @@ const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClos
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-40 flex justify-end" onClick={onClose}>
+    <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-40 flex justify-end" onClick={onClose}>
       <div
-        className="h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col z-50 animate-slide-in-right"
+        className="h-full bg-gray-50 border-l border-gray-200 shadow-xl flex flex-col z-50 animate-slide-in-right"
         style={{ width: "45vw", maxWidth: 750, minWidth: 350 }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-slate-950/20">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-white">
           <div className="max-w-[70%]">
-            <h3 className="text-md font-bold text-slate-100 truncate" title={cv.original_filename}>
+            <h3 className="text-md font-bold text-gray-900 truncate" title={cv.original_filename}>
               {cv.name || cv.original_filename}
             </h3>
-            <p className="text-[10px] text-slate-500 truncate font-semibold uppercase tracking-wider mt-0.5">{cv.original_filename}</p>
+            <p className="text-[10px] text-gray-500 truncate font-semibold uppercase tracking-wider mt-0.5">{cv.original_filename}</p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-100 text-xl font-bold bg-slate-800 hover:bg-slate-750 px-2.5 py-0.5 rounded-lg transition-all"
+            className="text-gray-400 hover:text-gray-900 text-xl font-bold bg-gray-100 hover:bg-gray-200 px-2.5 py-0.5 rounded-lg transition-all"
             aria-label="Close"
           >
             x
@@ -67,27 +114,38 @@ const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClos
         </div>
 
         {/* PDF Preview Frame */}
-        <div className="flex-1 overflow-auto p-6 flex flex-col items-center justify-center bg-slate-950/40">
+        <div className="flex-1 min-h-0 overflow-hidden p-6 flex flex-col bg-gray-100/50">
           {isPDF ? (
-            <embed
-              src={embedUrl}
-              type="application/pdf"
-              width="100%"
-              height="100%"
-              className="rounded-xl border border-slate-800 bg-slate-950 shadow-inner"
-            />
+            pdfLoading ? (
+              <div className="flex-1 flex items-center justify-center text-sm text-gray-500 font-semibold">
+                Loading PDF preview...
+              </div>
+            ) : pdfError ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-white border border-gray-200 rounded-xl max-w-sm mx-auto">
+                <p className="text-sm text-red-500 font-semibold mb-2">Could not load PDF preview.</p>
+                <p className="text-xs text-gray-500">
+                  The file may be missing from the server. Try downloading it instead.
+                </p>
+              </div>
+            ) : pdfBlobUrl ? (
+              <iframe
+                src={pdfBlobUrl}
+                title={`Preview of ${cv.original_filename}`}
+                className="flex-1 w-full min-h-0 rounded-xl border border-gray-200 bg-white shadow-sm"
+              />
+            ) : null
           ) : isDOC ? (
-            <div className="text-center p-8 bg-slate-900 border border-slate-800 rounded-xl max-w-sm">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Preview Restricted</p>
-              <p className="text-sm text-slate-300">
+            <div className="text-center p-8 bg-white border border-gray-200 rounded-xl max-w-sm">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Preview Restricted</p>
+              <p className="text-sm text-gray-700">
                 Document preview is not supported for DOC/DOCX files.
               </p>
-              <p className="text-xs text-slate-500 mt-2">
+              <p className="text-xs text-gray-500 mt-2">
                 Download the resume to view details offline.
               </p>
             </div>
           ) : (
-            <div className="text-center p-8 bg-slate-900 border border-slate-800 rounded-xl max-w-sm">
+            <div className="text-center p-8 bg-white border border-gray-200 rounded-xl max-w-sm">
               <p className="text-sm text-red-400 font-semibold">Unsupported resume file format.</p>
             </div>
           )}
@@ -95,11 +153,11 @@ const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClos
 
         {/* Dynamic Outreach Toolbar */}
         {(cv.email || cv.phone) && (
-          <div className="px-6 py-3 border-t border-slate-850 bg-slate-950/30 flex items-center gap-2">
+          <div className="px-6 py-3 border-t border-gray-200 bg-white flex items-center gap-2">
             {cv.email && (
               <a
                 href={`mailto:${cv.email}`}
-                className="flex-1 text-center py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/10 transition-all"
+                className="flex-1 text-center py-2 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-semibold shadow-sm transition-all"
               >
                 Send Email
               </a>
@@ -109,7 +167,7 @@ const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClos
                 href={`https://wa.me/${cv.phone.replace(/[^\d]/g, "")}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 text-center py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/10 transition-all"
+                className="flex-1 text-center py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-semibold shadow-sm transition-all"
               >
                 WhatsApp Chat
               </a>
@@ -118,36 +176,35 @@ const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClos
         )}
 
         {/* Navigation Bar */}
-        <div className="flex items-center justify-between px-6 py-3 border-t border-slate-850 bg-slate-950/10">
+        <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-gray-50">
           <button
             onClick={goPrev}
             disabled={current === 0}
-            className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold disabled:opacity-30 disabled:hover:bg-slate-800 transition-all"
+            className="px-3.5 py-1.5 rounded-lg bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs font-semibold disabled:opacity-30 disabled:hover:bg-white transition-all"
           >
             Previous
           </button>
-          <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">
+          <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">
             {current + 1} of {cvList.length}
           </span>
           <button
             onClick={goNext}
             disabled={current === cvList.length - 1}
-            className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-semibold disabled:opacity-30 disabled:hover:bg-slate-800 transition-all"
+            className="px-3.5 py-1.5 rounded-lg bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs font-semibold disabled:opacity-30 disabled:hover:bg-white transition-all"
           >
             Next
           </button>
         </div>
 
-        {/* Download Footer */}
-        <div className="p-6 border-t border-slate-850 bg-slate-900">
+        <div className="p-6 border-t border-gray-200 bg-white">
           <a
-            href={`${API_URL}/cv/download/${cv.stored_filename}`}
+            href={`${API_URL}/cv/download/${encodeURIComponent(cv.stored_filename)}`}
             target="_blank"
             rel="noopener noreferrer"
             download
             className="block"
           >
-            <button className="bg-slate-850 hover:bg-slate-800 text-slate-200 border border-slate-800 hover:border-slate-700 py-2.5 rounded-xl font-semibold w-full transition-all text-xs">
+            <button className="bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 py-2.5 rounded-xl font-semibold w-full transition-all text-xs">
               Download Original CV File
             </button>
           </a>

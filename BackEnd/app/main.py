@@ -9,7 +9,7 @@ app.include_router(search.router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # For testing; restrict in prod
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

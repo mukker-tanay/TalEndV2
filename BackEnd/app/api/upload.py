@@ -9,6 +9,7 @@ from datetime import datetime
 from bson import ObjectId
 from typing import Optional
 import json
+from urllib.parse import unquote
 
 from app.utils.auth import decode_token
 from app.utils.parser import (
@@ -159,6 +160,7 @@ def list_user_cvs(credentials: HTTPAuthorizationCredentials = Depends(security))
 
 @router.get("/cv/download/{filename}")
 def download_cv(filename: str):
+    filename = unquote(filename)
     path = os.path.join(UPLOAD_DIR, filename)
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="File not found")
@@ -210,11 +212,16 @@ async def delete_cv(
 
 @router.get("/cv/preview/{filename}")
 def preview_cv(filename: str):
+    filename = unquote(filename)
     path = os.path.join(UPLOAD_DIR, filename)
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="File not found")
 
-    return FileResponse(path, media_type="application/pdf")
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "inline"},
+    )
 
 @router.get("/cv-status/{cv_id}")
 def cv_status(cv_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
