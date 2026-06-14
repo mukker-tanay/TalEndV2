@@ -1,24 +1,26 @@
+const { withSentryConfig } = require("@sentry/nextjs");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Rewrites are no longer needed as Nginx handles the proxying
-  /*
   async rewrites() {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://127.0.0.1:8000/:path*', // Proxy to Backend
+        destination: 'http://127.0.0.1:8000/:path*',
       },
       {
         source: '/docs',
-        destination: 'http://127.0.0.1:8000/docs', // Proxy Swagger UI
+        destination: 'http://127.0.0.1:8000/docs',
       },
       {
         source: '/openapi.json',
-        destination: 'http://127.0.0.1:8000/openapi.json', // Proxy OpenAPI schema
+        destination: 'http://127.0.0.1:8000/openapi.json',
       },
     ]
   },
-  */
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  silent: true,
+  hideSourceMaps: true,
+});
