@@ -11,6 +11,10 @@ sentry_sdk.init(
 )
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+
+@app.get("/sentry-debug")
+async def trigger_error():
+    division_by_zero = 1 / 0
 app.include_router(auth.router)
 app.include_router(upload.router)
 app.include_router(search.router)
