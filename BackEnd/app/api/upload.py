@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
 from uuid import uuid4
@@ -12,6 +12,10 @@ from bson import ObjectId
 from typing import Optional
 import json
 from urllib.parse import unquote
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 from app.utils.auth import decode_token
 from app.utils.parser import (
@@ -40,7 +44,9 @@ def safe_join(base: str, filename: str) -> str:
 
 
 @router.post("/upload-cv")
+@limiter.limit("20/minute")
 async def upload_cv(
+    request: Request,
     file: UploadFile = File(...),
     tags: str = Form(None),
     credentials: HTTPAuthorizationCredentials = Depends(security)

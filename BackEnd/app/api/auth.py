@@ -1,9 +1,26 @@
-from fastapi import APIRouter, HTTPException, Depends
+import secrets
+import string
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from app.models.user import UserCreate, UserLogin, AdminUserCreate, PasswordChange
 from app.utils.auth import hash_password, verify_password, create_access_token, decode_token
 from app.db.mongodb import db
+
+limiter = Limiter(key_func=get_remote_address)
+
+
+def generate_temp_password(length: int = 12) -> str:
+    alphabet = string.ascii_letters + string.digits + "!@#$%"
+    while True:
+        pwd = "".join(secrets.choice(alphabet) for _ in range(length))
+        if (any(c.isupper() for c in pwd)
+                and any(c.islower() for c in pwd)
+                and any(c.isdigit() for c in pwd)
+                and any(c in "!@#$%" for c in pwd)):
+            return pwd
 
 router = APIRouter()
 users = db.users
@@ -26,7 +43,8 @@ def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(securi
 
 
 @router.post("/auth/login")
-def login(user: UserLogin):
+@limiter.limit("10/minute")
+def login(request: Request, user: UserLogin):
     db_user = users.find_one({"email": user.email})
     if not db_user or not verify_password(user.password, db_user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -78,14 +96,18 @@ def admin_create_user(user: AdminUserCreate, admin_user = Depends(get_current_ad
     if users.find_one({"email": user.email}):
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    temp_password = generate_temp_password()
     users.insert_one({
         "name": user.name,
         "email": user.email,
-        "hashed_password": hash_password("test@1234"),
+        "hashed_password": hash_password(temp_password),
         "role": user.role if user.role else "user",
         "must_change_password": True
     })
-    return {"msg": f"User {user.email} created successfully with role {user.role}"}
+    return {
+        "msg": f"User {user.email} created successfully with role {user.role}",
+        "temp_password": temp_password
+    }
 
 class RoleUpdate(BaseModel):
     role: str
