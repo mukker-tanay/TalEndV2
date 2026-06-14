@@ -136,7 +136,7 @@ export default function Dashboard() {
           id: data.cv_id,
           name: undefined,
           filename: file.name,
-          stored_filename: file.name,
+          stored_filename: data.stored_filename || file.name,
           uploaded_at: new Date().toISOString(),
           status: "uploaded",
           tags: [...tags],

@@ -126,6 +126,7 @@ async def upload_cv(
         return {
             "message": "CV uploaded successfully (duplicate replaced if found).",
             "cv_id": cv_id,
+            "stored_filename": final_filename,
             "status": "uploaded"
         }
 
