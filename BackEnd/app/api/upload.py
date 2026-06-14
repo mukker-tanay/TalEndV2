@@ -25,11 +25,18 @@ from app.celery_worker import parse_cv_task
 router = APIRouter()
 security = HTTPBearer()
 
-UPLOAD_DIR = "uploaded_cvs"
+UPLOAD_DIR = os.path.realpath("uploaded_cvs")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-DOCX_CACHE_DIR = "docx_pdf_cache"
+DOCX_CACHE_DIR = os.path.realpath("docx_pdf_cache")
 os.makedirs(DOCX_CACHE_DIR, exist_ok=True)
+
+
+def safe_join(base: str, filename: str) -> str:
+    resolved = os.path.realpath(os.path.join(base, filename))
+    if not resolved.startswith(base + os.sep) and resolved != base:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    return resolved
 
 
 @router.post("/upload-cv")
@@ -74,12 +81,15 @@ async def upload_cv(
         if not email and not phone:
             raise HTTPException(status_code=400, detail="Email or phone number is required in CV for deduplication.")
 
+        or_conditions = []
+        if email:
+            or_conditions.append({"email": email})
+        if phone:
+            or_conditions.append({"phone": phone})
+
         existing_cv = db.cvs.find_one({
             "user_email": user_email,
-            "$or": [
-                {"email": email},
-                {"phone": phone}
-            ]
+            "$or": or_conditions
         })
 
         if existing_cv:
@@ -167,7 +177,7 @@ def list_user_cvs(credentials: HTTPAuthorizationCredentials = Depends(security))
 @router.get("/cv/download/{filename}")
 def download_cv(filename: str):
     filename = unquote(filename)
-    path = os.path.join(UPLOAD_DIR, filename)
+    path = safe_join(UPLOAD_DIR, filename)
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(path, media_type="application/octet-stream", filename=filename)
@@ -219,7 +229,7 @@ async def delete_cv(
 @router.get("/cv/preview/{filename}")
 def preview_cv(filename: str):
     filename = unquote(filename)
-    path = os.path.join(UPLOAD_DIR, filename)
+    path = safe_join(UPLOAD_DIR, filename)
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="File not found")
 
@@ -232,7 +242,7 @@ def preview_cv(filename: str):
 @router.get("/cv/preview-docx/{filename}")
 def preview_docx(filename: str):
     filename = unquote(filename)
-    docx_path = os.path.join(UPLOAD_DIR, filename)
+    docx_path = safe_join(UPLOAD_DIR, filename)
     if not os.path.exists(docx_path):
         raise HTTPException(status_code=404, detail="File not found")
 
