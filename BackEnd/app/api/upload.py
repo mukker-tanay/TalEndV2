@@ -5,6 +5,8 @@ from uuid import uuid4
 import zipfile
 from tempfile import TemporaryDirectory
 import os
+import hashlib
+import subprocess
 from datetime import datetime
 from bson import ObjectId
 from typing import Optional
@@ -25,6 +27,9 @@ security = HTTPBearer()
 
 UPLOAD_DIR = "uploaded_cvs"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+DOCX_CACHE_DIR = "docx_pdf_cache"
+os.makedirs(DOCX_CACHE_DIR, exist_ok=True)
 
 
 @router.post("/upload-cv")
@@ -223,6 +228,36 @@ def preview_cv(filename: str):
         media_type="application/pdf",
         headers={"Content-Disposition": "inline"},
     )
+
+@router.get("/cv/preview-docx/{filename}")
+def preview_docx(filename: str):
+    filename = unquote(filename)
+    docx_path = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(docx_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    with open(docx_path, "rb") as f:
+        cache_key = hashlib.md5(f.read()).hexdigest()
+    pdf_path = os.path.join(DOCX_CACHE_DIR, f"{cache_key}.pdf")
+
+    if not os.path.exists(pdf_path):
+        try:
+            result = subprocess.run(
+                ["libreoffice", "--headless", "--convert-to", "pdf", "--outdir", DOCX_CACHE_DIR, docx_path],
+                capture_output=True, timeout=60
+            )
+            base = os.path.splitext(os.path.basename(docx_path))[0]
+            lo_output = os.path.join(DOCX_CACHE_DIR, f"{base}.pdf")
+            if os.path.exists(lo_output):
+                os.rename(lo_output, pdf_path)
+            else:
+                raise HTTPException(status_code=500, detail="Conversion failed")
+        except FileNotFoundError:
+            raise HTTPException(status_code=501, detail="LibreOffice not installed on server")
+        except subprocess.TimeoutExpired:
+            raise HTTPException(status_code=504, detail="Conversion timed out")
+
+    return FileResponse(pdf_path, media_type="application/pdf", headers={"Content-Disposition": "inline"})
 
 @router.get("/cv-status/{cv_id}")
 def cv_status(cv_id: str, credentials: HTTPAuthorizationCredentials = Depends(security)):

@@ -29,9 +29,6 @@ const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClos
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(false);
-  const [docHtml, setDocHtml] = useState<string | null>(null);
-  const [docLoading, setDocLoading] = useState(false);
-  const [docError, setDocError] = useState(false);
 
   const cv = cvList[current];
   const storedFilename = cv?.stored_filename ?? "";
@@ -39,11 +36,12 @@ const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClos
   const isDOC = /\.(docx?)$/i.test(storedFilename);
   const previewUrl = isPDF
     ? `${API_URL}/cv/preview/${encodeURIComponent(storedFilename)}`
+    : isDOC
+    ? `${API_URL}/cv/preview-docx/${encodeURIComponent(storedFilename)}`
     : "";
-  const downloadUrl = `${API_URL}/cv/download/${encodeURIComponent(storedFilename)}`;
 
   useEffect(() => {
-    if (!isPDF || !storedFilename) {
+    if (!previewUrl || !storedFilename) {
       setPdfBlobUrl(null);
       setPdfLoading(false);
       setPdfError(false);
@@ -59,7 +57,7 @@ const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClos
 
     fetch(previewUrl)
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to load PDF");
+        if (!res.ok) throw new Error("Failed to load preview");
         return res.blob();
       })
       .then((blob) => {
@@ -79,46 +77,7 @@ const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClos
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [storedFilename, isPDF, previewUrl]);
-
-  useEffect(() => {
-    if (!isDOC || !storedFilename) {
-      setDocHtml(null);
-      setDocLoading(false);
-      setDocError(false);
-      return;
-    }
-
-    let cancelled = false;
-    setDocLoading(true);
-    setDocError(false);
-    setDocHtml(null);
-
-    fetch(downloadUrl)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch DOCX");
-        return res.arrayBuffer();
-      })
-      .then((buffer) => {
-        if (cancelled) return;
-        return import("mammoth").then((mammoth) =>
-          mammoth.convertToHtml({ arrayBuffer: buffer })
-        );
-      })
-      .then((result) => {
-        if (cancelled || !result) return;
-        setDocHtml(result.value);
-        setDocLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setDocError(true);
-          setDocLoading(false);
-        }
-      });
-
-    return () => { cancelled = true; };
-  }, [storedFilename, isDOC, downloadUrl]);
+  }, [storedFilename, previewUrl]);
 
   if (!cvList.length || !cv) return null;
 
@@ -158,16 +117,16 @@ const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClos
 
         {/* PDF Preview Frame */}
         <div className="flex-1 min-h-0 overflow-hidden p-6 flex flex-col bg-gray-100/50">
-          {isPDF ? (
+          {(isPDF || isDOC) ? (
             pdfLoading ? (
               <div className="flex-1 flex items-center justify-center text-sm text-gray-500 font-semibold">
-                Loading PDF preview...
+                {isDOC ? "Converting document..." : "Loading PDF preview..."}
               </div>
             ) : pdfError ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-white border border-gray-200 rounded-xl max-w-sm mx-auto">
-                <p className="text-sm text-red-500 font-semibold mb-2">Could not load PDF preview.</p>
+                <p className="text-sm text-red-500 font-semibold mb-2">Could not load preview.</p>
                 <p className="text-xs text-gray-500">
-                  The file may be missing from the server. Try downloading it instead.
+                  {isDOC ? "LibreOffice may not be installed on the server." : "The file may be missing."} Try downloading instead.
                 </p>
               </div>
             ) : pdfBlobUrl ? (
@@ -175,22 +134,6 @@ const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClos
                 src={pdfBlobUrl}
                 title={`Preview of ${cv.original_filename}`}
                 className="flex-1 w-full min-h-0 rounded-xl border border-gray-200 bg-white shadow-sm"
-              />
-            ) : null
-          ) : isDOC ? (
-            docLoading ? (
-              <div className="flex-1 flex items-center justify-center text-sm text-gray-500 font-semibold">
-                Loading document preview...
-              </div>
-            ) : docError ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-white border border-gray-200 rounded-xl max-w-sm mx-auto">
-                <p className="text-sm text-red-500 font-semibold mb-2">Could not load document preview.</p>
-                <p className="text-xs text-gray-500">Try downloading the file instead.</p>
-              </div>
-            ) : docHtml ? (
-              <div
-                className="flex-1 w-full min-h-0 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-sm p-6 prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: docHtml }}
               />
             ) : null
           ) : (
