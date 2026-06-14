@@ -30,6 +30,8 @@ export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<{ total_matching: number; total_pages: number; has_next: boolean; has_prev: boolean } | null>(null);
   const [sliderOpen, setSliderOpen] = useState(false);
   const [sliderIndex, setSliderIndex] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
@@ -53,59 +55,46 @@ export default function SearchPage() {
     }
   }, [router]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const fetchResults = async (pageNum: number) => {
     setLoading(true);
-
-    if (!token) {
-      console.error("No auth token found");
-      setLoading(false);
-      return;
-    }
+    if (!token) { setLoading(false); return; }
 
     const params = new URLSearchParams();
     params.append("query", query);
-    
+    params.append("page", pageNum.toString());
+    params.append("limit", "50");
+
     if (showFilters) {
-      if (batchMin > 1950) {
-        params.append("batch_min", batchMin.toString());
-      }
-      if (batchMax < 2030) {
-        params.append("batch_max", batchMax.toString());
-      }
-      
-      if (lastEducation.trim()) {
-        params.append("last_education", lastEducation.trim());
-      }
-      
-      if (uploadRange.trim()) {
-        params.append("upload_range", uploadRange.trim());
-      }
+      if (batchMin > 1950) params.append("batch_min", batchMin.toString());
+      if (batchMax < 2030) params.append("batch_max", batchMax.toString());
+      if (lastEducation.trim()) params.append("last_education", lastEducation.trim());
+      if (uploadRange.trim()) params.append("upload_range", uploadRange.trim());
     }
 
     try {
       const res = await fetch(`${API_URL}/search-cvs?${params.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
-
-      if (!res.ok) {
-        const errMsg = await res.text();
-        console.error("Backend error:", res.status, errMsg);
-        setLoading(false);
-        return;
-      }
-
+      if (!res.ok) { setLoading(false); return; }
       const data = await res.json();
-      console.log("Search response:", data);
       setResults(Array.isArray(data.results) ? data.results : []);
+      setPagination(data.pagination ?? null);
     } catch (err) {
       console.error("Search error:", err);
     }
-
     setLoading(false);
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+    await fetchResults(1);
+  };
+
+  const goToPage = async (pageNum: number) => {
+    setPage(pageNum);
+    await fetchResults(pageNum);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const closePanel = () => {
@@ -302,6 +291,12 @@ export default function SearchPage() {
           <p className="text-gray-500 text-sm italic">Enter technical keywords or candidate credentials in the query box above.</p>
         )}
 
+        {pagination && (
+          <div className="mb-4 text-xs text-gray-500 font-semibold">
+            {pagination.total_matching} candidate{pagination.total_matching !== 1 ? "s" : ""} matched · Page {page} of {pagination.total_pages}
+          </div>
+        )}
+
         <div className="grid gap-6">
           {results.map((cv) => (
             <div key={cv._id} className="bg-gray-50 border border-gray-200 rounded-2xl p-6 shadow-sm relative">
@@ -381,6 +376,28 @@ export default function SearchPage() {
             </div>
           ))}
         </div>
+
+        {pagination && pagination.total_pages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-8">
+            <button
+              onClick={() => goToPage(page - 1)}
+              disabled={!pagination.has_prev || loading}
+              className="px-4 py-2 rounded-xl bg-white border border-gray-300 text-gray-700 text-xs font-semibold disabled:opacity-30 hover:bg-gray-50 transition-all"
+            >
+              Previous
+            </button>
+            <span className="text-xs text-gray-500 font-bold px-3">
+              {page} / {pagination.total_pages}
+            </span>
+            <button
+              onClick={() => goToPage(page + 1)}
+              disabled={!pagination.has_next || loading}
+              className="px-4 py-2 rounded-xl bg-white border border-gray-300 text-gray-700 text-xs font-semibold disabled:opacity-30 hover:bg-gray-50 transition-all"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       {sliderOpen && (

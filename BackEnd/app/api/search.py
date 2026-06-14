@@ -59,14 +59,18 @@ def search_in_text(text: str, keywords: list, mode: str) -> bool:
                 return True
         return False
 
+SEARCH_FETCH_LIMIT = 500  # Max docs fetched from MongoDB before Python scoring
+
 @router.get("/search-cvs")
 def search_cvs(
     query: str = Query(..., description="Conversational query or keyword boolean string"),
-    tags: Optional[str] = Query(None, description="Comma-separated list of tags to filter by"),
-    batch_min: Optional[int] = Query(None, description="Minimum graduation batch year (1950-2030)"),
-    batch_max: Optional[int] = Query(None, description="Maximum graduation batch year (1950-2030)"),
-    last_education: Optional[str] = Query(None, description="Last education filter (case-insensitive substring match)"),
-    upload_range: Optional[str] = Query(None, description="Upload date range: 1m, 3m, 6m, 1y, 2y, 2y+"),
+    tags: Optional[str] = Query(None),
+    batch_min: Optional[int] = Query(None),
+    batch_max: Optional[int] = Query(None),
+    last_education: Optional[str] = Query(None),
+    upload_range: Optional[str] = Query(None),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    limit: int = Query(50, ge=1, le=100, description="Results per page"),
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     token = credentials.credentials
@@ -74,7 +78,6 @@ def search_cvs(
     if not user_data:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    # Run the query through our semantic translator first
     translation = translate_conversational_query(query)
     is_conversational = translation.get("is_conversational", False)
 
@@ -89,190 +92,124 @@ def search_cvs(
         semantic_skills = []
         semantic_exp_min = None
         semantic_edu_kws = []
-    
-    required_tags = []
-    if tags and tags.strip():
-        required_tags = [tag.strip().lower() for tag in tags.split(',') if tag.strip()]
+
+    required_tags = [t.strip().lower() for t in tags.split(',') if t.strip()] if tags and tags.strip() else []
 
     now = datetime.utcnow()
     upload_threshold = None
     upload_comparison = None
-    
+    upload_days = {"1m": 30, "3m": 90, "6m": 180, "1y": 365, "2y": 730}
     if upload_range and upload_range.strip():
-        if upload_range == "1m":
-            upload_threshold = now - timedelta(days=30)
-            upload_comparison = "after"
-        elif upload_range == "3m":
-            upload_threshold = now - timedelta(days=90)
-            upload_comparison = "after"
-        elif upload_range == "6m":
-            upload_threshold = now - timedelta(days=180)
-            upload_comparison = "after"
-        elif upload_range == "1y":
-            upload_threshold = now - timedelta(days=365)
-            upload_comparison = "after"
-        elif upload_range == "2y":
-            upload_threshold = now - timedelta(days=730)
+        if upload_range in upload_days:
+            upload_threshold = now - timedelta(days=upload_days[upload_range])
             upload_comparison = "after"
         elif upload_range == "2y+":
             upload_threshold = now - timedelta(days=730)
             upload_comparison = "before"
 
+    # --- Build MongoDB filter (structural filters only) ---
+    mongo_filter = {"processing_status": "completed"}
+
+    if required_tags:
+        mongo_filter["tags"] = {"$all": required_tags}
+
+    batch_range = {}
+    if batch_min is not None:
+        batch_range["$gte"] = batch_min
+    if batch_max is not None:
+        batch_range["$lte"] = batch_max
+    if batch_range:
+        mongo_filter["graduation_batch"] = batch_range
+
+    if last_education and last_education.strip():
+        mongo_filter["last_education"] = {"$regex": last_education.strip(), "$options": "i"}
+    elif is_conversational and semantic_edu_kws:
+        mongo_filter["last_education"] = {"$regex": "|".join(semantic_edu_kws), "$options": "i"}
+
+    if upload_threshold:
+        op = "$gte" if upload_comparison == "after" else "$lte"
+        mongo_filter["upload_time"] = {op: upload_threshold}
+
+    if is_conversational and semantic_exp_min is not None:
+        mongo_filter["total_experience_years"] = {"$gte": semantic_exp_min}
+
+    if is_conversational and semantic_skills:
+        mongo_filter["skills"] = {"$in": semantic_skills}
+
+    # --- Fetch from MongoDB (capped at SEARCH_FETCH_LIMIT) ---
+    cursor = db.cvs.find(mongo_filter).limit(SEARCH_FETCH_LIMIT)
+
+    # --- Python: keyword matching + scoring ---
     results = []
-    total_cvs = 0
-    filtered_cvs = 0
+    db_count = 0
 
-    filter_stats = {
-        "total_cvs": 0,
-        "completed_processing": 0,
-        "passed_tag_filter": 0,
-        "passed_batch_filter": 0,
-        "passed_education_filter": 0,
-        "passed_upload_filter": 0,
-        "passed_keyword_filter": 0,
-        "final_results": 0
-    }
-
-    for cv in db.cvs.find():
-        filter_stats["total_cvs"] += 1
-        
-        if cv.get("processing_status") != "completed":
-            continue
-        filter_stats["completed_processing"] += 1
-        
+    for cv in cursor:
+        db_count += 1
         raw_text = cv.get("raw_text") or ""
-        cv_tags = [t.lower() for t in cv.get("tags", [])]
-        cv_skills = [s.lower() for s in cv.get("skills", [])]
-        
-        if required_tags:
-            if not all(tag in cv_tags for tag in required_tags):
-                continue
-        filter_stats["passed_tag_filter"] += 1
 
-        batch = cv.get("graduation_batch")
-        try:
-            batch = int(batch) if batch else None
-        except (TypeError, ValueError):
-            batch = None
-
-        if batch is not None and (batch < 1950 or batch > 2030):
-            batch = None
-
-        if batch_min is not None and (batch is None or batch < batch_min):
+        if not search_in_text(raw_text, keywords, mode):
             continue
-        if batch_max is not None and (batch is None or batch > batch_max):
-            continue
-        filter_stats["passed_batch_filter"] += 1
 
-        # Education filter - fallback to semantic keywords if no explicit parameter passed
-        if last_education and last_education.strip():
-            le = (cv.get("last_education") or "").lower()
-            if last_education.lower() not in le:
-                continue
-        elif is_conversational and semantic_edu_kws:
-            le = (cv.get("last_education") or "").lower()
-            if not any(edu in le for edu in semantic_edu_kws):
-                continue
-        filter_stats["passed_education_filter"] += 1
+        score = compute_match_score(
+            cv_text=raw_text,
+            query=query,
+            skills=cv.get("skills", []),
+            position=cv.get("current_position"),
+            company=cv.get("current_company"),
+            name=cv.get("name"),
+            email=cv.get("email")
+        )
 
-        # Semantic Sourcing Filters
-        # Experience constraints
-        cv_exp = cv.get("total_experience_years")
-        try:
-            cv_exp = int(cv_exp) if cv_exp is not None else 0
-        except (TypeError, ValueError):
-            cv_exp = 0
-
-        if is_conversational and semantic_exp_min is not None:
-            if cv_exp < semantic_exp_min:
-                continue
-
-        # Technical skills constraints
-        if is_conversational and semantic_skills:
-            if not any(skill in cv_skills or skill in raw_text.lower() for skill in semantic_skills):
-                continue
-
-        upload_time = cv.get("upload_time")
-        if isinstance(upload_time, str):
-            try:
-                upload_time = datetime.fromisoformat(upload_time.replace('Z', '+00:00'))
-            except ValueError:
-                upload_time = None
-
-        if upload_range and upload_range.strip() and upload_threshold:
-            if upload_comparison == "after":
-                if not upload_time or upload_time < upload_threshold:
-                    continue
-            elif upload_comparison == "before":
-                if upload_time and upload_time > upload_threshold:
-                    continue
-        filter_stats["passed_upload_filter"] += 1
-
-        if search_in_text(raw_text, keywords, mode):
-            filter_stats["passed_keyword_filter"] += 1
-            
-            score = compute_match_score(
-                cv_text=raw_text,
-                query=query,
-                skills=cv.get("skills", []),
-                position=cv.get("current_position"),
-                company=cv.get("current_company"),
-                name=cv.get("name"),
-                email=cv.get("email")
-            )
-            
-            result = {
-                "_id": str(cv["_id"]),
-                "user_email": cv.get("user_email"),
-                "original_filename": cv.get("original_filename"),
-                "stored_filename": cv.get("stored_filename"),
-                "match_score": score,
-                "upload_time": cv.get("upload_time"),
-                "name": cv.get("name"),
-                "email": cv.get("email"),
-                "phone": cv.get("phone"),
-                "skills": cv.get("skills", []),
-                "current_position": cv.get("current_position"),
-                "current_company": cv.get("current_company"),
-                "last_education": cv.get("last_education"),
-                "graduation_batch": cv.get("graduation_batch"),
-                "tags": cv.get("tags", []),
-                "raw_text_preview": raw_text[:200] + "..." if len(raw_text) > 200 else raw_text,
-                "processing_status": cv.get("processing_status")
-            }
-            results.append(result)
-            filter_stats["final_results"] += 1
+        results.append({
+            "_id": str(cv["_id"]),
+            "user_email": cv.get("user_email"),
+            "original_filename": cv.get("original_filename"),
+            "stored_filename": cv.get("stored_filename"),
+            "match_score": score,
+            "upload_time": cv.get("upload_time"),
+            "name": cv.get("name"),
+            "email": cv.get("email"),
+            "phone": cv.get("phone"),
+            "skills": cv.get("skills", []),
+            "current_position": cv.get("current_position"),
+            "current_company": cv.get("current_company"),
+            "last_education": cv.get("last_education"),
+            "graduation_batch": cv.get("graduation_batch"),
+            "tags": cv.get("tags", []),
+            "raw_text_preview": raw_text[:200] + "..." if len(raw_text) > 200 else raw_text,
+            "processing_status": cv.get("processing_status")
+        })
 
     results.sort(key=lambda x: x["match_score"], reverse=True)
 
+    total_matching = len(results)
+    skip = (page - 1) * limit
+    page_results = results[skip: skip + limit]
+
     return JSONResponse(content=jsonable_encoder({
-        "results": results,
+        "results": page_results,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total_matching": total_matching,
+            "total_pages": max(1, -(-total_matching // limit)),
+            "has_next": skip + limit < total_matching,
+            "has_prev": page > 1,
+        },
         "search_info": {
             "query": query,
             "keywords": keywords,
             "mode": mode,
             "is_conversational": is_conversational,
-            "semantic_extracted": {
-                "skills": semantic_skills,
-                "experience_min": semantic_exp_min,
-                "education_keywords": semantic_edu_kws
-            } if is_conversational else None,
+            "db_scanned": db_count,
             "filters_applied": {
-                "tags": tags if tags and tags.strip() else None,
+                "tags": tags if required_tags else None,
                 "batch_min": batch_min,
                 "batch_max": batch_max,
                 "last_education": last_education if last_education and last_education.strip() else None,
-                "upload_range": upload_range if upload_range and upload_range.strip() else None
+                "upload_range": upload_range if upload_threshold else None,
             },
-            "active_filters": {
-                "tags_active": bool(required_tags),
-                "batch_min_active": batch_min is not None,
-                "batch_max_active": batch_max is not None,
-                "education_active": bool(last_education and last_education.strip()),
-                "upload_range_active": bool(upload_range and upload_range.strip() and upload_threshold)
-            }
         },
-        "filter_stats": filter_stats
     }))
 
 
