@@ -1,4 +1,5 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form, Request, Body, BackgroundTasks
+import time
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
 from uuid import uuid4
@@ -303,7 +304,11 @@ def cv_status(cv_id: str, credentials: HTTPAuthorizationCredentials = Depends(se
         "cv_id": cv_id
     }
 
-def _parse_and_store_cv(cv_id: str, file_path: str, original_name: str):
+RETRY_DELAYS = [10, 30, 60]  # seconds between Gemini retry attempts
+
+def _parse_and_store_cv(cv_id: str, file_path: str, original_name: str, initial_delay: float = 0):
+    if initial_delay:
+        time.sleep(initial_delay)
     try:
         ext = file_path.split(".")[-1].lower()
         text = extract_text_from_pdf(file_path) if ext == "pdf" else extract_text_from_docx(file_path)
@@ -313,7 +318,26 @@ def _parse_and_store_cv(cv_id: str, file_path: str, original_name: str):
                 {"$set": {"processing_status": "error", "error": "Insufficient text extracted"}}
             )
             return
-        parsed_data = parse_cv_enhanced(text, file_name=original_name)
+
+        parsed_data = None
+        last_error = None
+        for attempt, delay in enumerate([0] + RETRY_DELAYS):
+            if delay:
+                time.sleep(delay)
+            try:
+                parsed_data = parse_cv_enhanced(text, file_name=original_name)
+                if parsed_data.get("name"):
+                    break
+            except Exception as e:
+                last_error = str(e)
+
+        if parsed_data is None:
+            db.cvs.update_one(
+                {"_id": ObjectId(cv_id)},
+                {"$set": {"processing_status": "error", "error": last_error or "Gemini parse failed"}}
+            )
+            return
+
         update_fields = {
             "processing_status": "completed",
             "raw_text": text,
@@ -372,6 +396,7 @@ async def upload_zip(
             zip_ref.extractall(temp_dir.name)
 
         uploaded_cvs = []
+        cv_index = 0
         for root, _, files in os.walk(temp_dir.name):
             for name in files:
                 if name.lower().endswith((".pdf", ".docx")):
@@ -394,7 +419,9 @@ async def upload_zip(
                     result = db.cvs.insert_one(db_entry)
                     cv_id = str(result.inserted_id)
 
-                    background_tasks.add_task(_parse_and_store_cv, cv_id, dst_path, orig_name)
+                    # Stagger calls by 3s per file so Gemini quota isn't hammered
+                    background_tasks.add_task(_parse_and_store_cv, cv_id, dst_path, orig_name, cv_index * 3)
+                    cv_index += 1
                     uploaded_cvs.append({
                         "cv_id": cv_id,
                         "original_filename": orig_name,

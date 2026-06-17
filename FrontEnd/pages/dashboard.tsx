@@ -66,6 +66,14 @@ export default function Dashboard() {
     }
   }, [token]);
 
+  // Auto-refresh while any CV is still parsing (uploaded) or completed but nameless
+  useEffect(() => {
+    const needsRefresh = cvList.some((cv) => cv.status === "uploaded" || !cv.name);
+    if (!needsRefresh) return;
+    const timer = setTimeout(fetchCVs, 8000);
+    return () => clearTimeout(timer);
+  }, [cvList]);
+
   const fetchCVs = async () => {
     try {
       const res = await fetch(`${API_URL}/list-cvs`, {
