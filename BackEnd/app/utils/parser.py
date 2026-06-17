@@ -1,6 +1,7 @@
 import docx
 import re
 import spacy
+import sentry_sdk
 from typing import List, Dict, Optional
 import os
 import pandas as pd
@@ -99,6 +100,13 @@ def parse_cv_enhanced(text: str, file_name: Optional[str] = None) -> dict:
     gemini_data = extract_fields_with_gemini(text)
 
     name = gemini_data.get("name") or extract_name_with_gemini(text)
+    if not name:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_extra("text_preview", text[:300])
+            sentry_sdk.capture_message(
+                "CV name extraction failed after both Gemini calls",
+                level="warning"
+            )
 
     parsed_data = {
         "name": name,

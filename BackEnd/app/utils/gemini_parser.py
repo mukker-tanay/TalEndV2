@@ -2,6 +2,7 @@ import os
 import json
 import re
 import requests
+import sentry_sdk
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -78,6 +79,10 @@ Resume text:
 
     except Exception as e:
         print("Gemini parsing failed:", e)
+        sentry_sdk.capture_message(
+            f"Gemini full CV parse failed: {e}",
+            level="error"
+        )
         return {
             "name": None,
             "current_company": None,
@@ -115,4 +120,8 @@ Resume text:
         return text
     except Exception as e:
         print("Gemini name extraction failed:", e)
+        sentry_sdk.capture_message(
+            f"Gemini focused name extraction failed: {e}",
+            level="error"
+        )
         return None
