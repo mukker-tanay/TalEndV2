@@ -1,6 +1,7 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form, Request, Body, BackgroundTasks
 import threading
 import time
+import sentry_sdk
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
 from uuid import uuid4
@@ -167,9 +168,18 @@ async def upload_cv(
             "status": "completed"
         }
 
+    except HTTPException:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise
     except Exception as e:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("stage", "upload_cv")
+            scope.set_extra("original_name", original_name)
+            scope.set_user({"email": user_email})
+            sentry_sdk.capture_exception(e)
         raise HTTPException(status_code=500, detail=f"Error processing CV: {str(e)}")
 
 
@@ -335,6 +345,11 @@ def _parse_and_store_cv(cv_id: str, file_path: str, original_name: str):
         }
         db.cvs.update_one({"_id": ObjectId(cv_id)}, {"$set": update_fields})
     except Exception as e:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("stage", "background_parse")
+            scope.set_extra("cv_id", cv_id)
+            scope.set_extra("original_name", original_name)
+            sentry_sdk.capture_exception(e)
         db.cvs.update_one(
             {"_id": ObjectId(cv_id)},
             {"$set": {"processing_status": "error", "error": str(e)}}
@@ -431,7 +446,14 @@ async def upload_zip(
 
     except zipfile.BadZipFile:
         raise HTTPException(status_code=400, detail="Invalid ZIP file.")
+    except HTTPException:
+        raise
     except Exception as e:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("stage", "upload_zip")
+            scope.set_extra("zip_filename", file.filename)
+            scope.set_user({"email": user_email})
+            sentry_sdk.capture_exception(e)
         raise HTTPException(status_code=500, detail=f"Error handling ZIP: {str(e)}")
     finally:
         temp_dir.cleanup()

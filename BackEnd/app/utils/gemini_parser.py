@@ -56,6 +56,25 @@ Resume text:
             data=json.dumps(payload)
         )
 
+        # Rate limit / quota — log distinctly so it's filterable in Sentry
+        if response.status_code == 429:
+            print("Gemini quota exceeded (429)")
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("gemini_error", "quota_exceeded")
+                scope.set_extra("response_body", response.text[:500])
+                sentry_sdk.capture_message("Gemini quota exceeded (429)", level="error")
+            return _empty_gemini_result()
+
+        if response.status_code != 200:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("gemini_error", "http_error")
+                scope.set_extra("status_code", response.status_code)
+                scope.set_extra("response_body", response.text[:500])
+                sentry_sdk.capture_message(
+                    f"Gemini HTTP {response.status_code}", level="error"
+                )
+            return _empty_gemini_result()
+
         result = response.json()
         print("GEMINI RAW RESPONSE:", json.dumps(result, indent=2))
 
@@ -79,49 +98,19 @@ Resume text:
 
     except Exception as e:
         print("Gemini parsing failed:", e)
-        sentry_sdk.capture_message(
-            f"Gemini full CV parse failed: {e}",
-            level="error"
-        )
-        return {
-            "name": None,
-            "current_company": None,
-            "current_designation": None,
-            "last_education": None,
-            "batch": None,
-            "Total_Experience": None,
-            "skills": []
-        }
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("gemini_error", "parse_failed")
+            sentry_sdk.capture_exception(e)
+        return _empty_gemini_result()
 
 
-def extract_name_with_gemini(cv_text: str) -> str | None:
-    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
-    prompt = f"""Look at the beginning of this resume and find the candidate's full name.
-Return only the full name as a plain string. No explanation, no JSON, just the name.
-If you truly cannot find a name, return null.
-
-Resume text:
-\"\"\"{cv_text[:600]}\"\"\"
-"""
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    try:
-        response = requests.post(
-            f"{endpoint}?key={GEMINI_API_KEY}",
-            headers={"Content-Type": "application/json"},
-            data=json.dumps(payload)
-        )
-        result = response.json()
-        candidates = result.get("candidates")
-        if not candidates or "content" not in candidates[0]:
-            return None
-        text = candidates[0]["content"]["parts"][0]["text"].strip()
-        if text.lower() in ("null", "none", ""):
-            return None
-        return text
-    except Exception as e:
-        print("Gemini name extraction failed:", e)
-        sentry_sdk.capture_message(
-            f"Gemini focused name extraction failed: {e}",
-            level="error"
-        )
-        return None
+def _empty_gemini_result() -> dict:
+    return {
+        "name": None,
+        "current_company": None,
+        "current_designation": None,
+        "last_education": None,
+        "batch": None,
+        "Total_Experience": None,
+        "skills": []
+    }

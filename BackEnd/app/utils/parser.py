@@ -99,12 +99,13 @@ def parse_cv_enhanced(text: str, file_name: Optional[str] = None) -> dict:
 
     gemini_data = extract_fields_with_gemini(text)
 
-    name = gemini_data.get("name") or extract_name_with_gemini(text)
+    name = gemini_data.get("name")
     if not name:
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("text_preview", text[:300])
+            scope.set_extra("file_name", file_name)
             sentry_sdk.capture_message(
-                "CV name extraction failed after both Gemini calls",
+                "CV name extraction returned empty from Gemini",
                 level="warning"
             )
 
