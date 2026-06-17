@@ -1,5 +1,6 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form, Request, Body, BackgroundTasks
 import threading
+import time
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
 from uuid import uuid4
@@ -352,6 +353,8 @@ def _parse_queue(cv_queue: list, batch_size: int = 5):
             t.start()
         for t in threads:
             t.join()
+        if i + batch_size < len(cv_queue):
+            time.sleep(15)
 
 
 @router.post("/upload-zip")

@@ -6,7 +6,7 @@ from typing import List, Dict, Optional
 import os
 import pandas as pd
 import fitz  # pymupdf
-from app.utils.gemini_parser import extract_fields_with_gemini, extract_name_with_gemini
+from app.utils.gemini_parser import extract_fields_with_gemini
 
 nlp = spacy.load("en_core_web_sm")
 
