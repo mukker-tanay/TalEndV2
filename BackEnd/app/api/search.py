@@ -103,7 +103,7 @@ def search_cvs(
         semantic_exp_min = None
         semantic_edu_kws = []
 
-    required_tags = [t.strip().lower() for t in tags.split(',') if t.strip()] if tags and tags.strip() else []
+    required_tags = [t.strip() for t in tags.split(',') if t.strip()] if tags and tags.strip() else []
 
     now = datetime.utcnow()
     upload_threshold = None

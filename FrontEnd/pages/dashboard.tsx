@@ -223,6 +223,20 @@ export default function Dashboard() {
     }
   };
 
+  const reparseStuck = async () => {
+    try {
+      const res = await fetch(`${API_URL}/reparse-stuck`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setMessage(data.message || "Re-parse triggered.");
+      setTimeout(fetchCVs, 5000);
+    } catch {
+      setMessage("Failed to trigger re-parse.");
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     router.push("/");
@@ -341,9 +355,20 @@ export default function Dashboard() {
         </div>
 
         {/* High-Density Ledger Table */}
-        <div className="mb-4">
-          <h2 className="text-xl font-bold text-gray-900 tracking-tight">Sourced Candidate Ledger</h2>
-          <p className="text-xs text-gray-500 mt-0.5">List of all parsed candidates sorted by upload timeline</p>
+        <div className="mb-4 flex items-end justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 tracking-tight">Sourced Candidate Ledger</h2>
+            <p className="text-xs text-gray-500 mt-0.5">List of all parsed candidates sorted by upload timeline</p>
+          </div>
+          {cvList.some((cv) => cv.status === "uploaded") && (
+            <button
+              type="button"
+              onClick={reparseStuck}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-yellow-50 border border-yellow-300 text-yellow-700 hover:bg-yellow-100 transition-all"
+            >
+              Re-parse pending CVs
+            </button>
+          )}
         </div>
 
         <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden max-w-4xl shadow-sm">

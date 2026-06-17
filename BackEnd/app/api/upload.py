@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form, Request, Body
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form, Request, Body, BackgroundTasks
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
 from uuid import uuid4
@@ -133,22 +133,36 @@ async def upload_cv(
             "file_size": file.size,
             "file_type": final_filename.split(".")[-1].lower(),
             "upload_time": datetime.utcnow(),
-            "processing_status": "uploaded",
+            "processing_status": "completed",
             "tags": tags_list,
-            "name": name,
-            "email": email,
-            "phone": phone
+            "raw_text": text,
+            "text_length": len(text),
+            "name": parsed_data.get("name"),
+            "email": parsed_data.get("email"),
+            "emails": parsed_data.get("emails", []),
+            "phone": parsed_data.get("phone"),
+            "phone_numbers": parsed_data.get("phone_numbers", []),
+            "skills": parsed_data.get("skills", []),
+            "current_position": parsed_data.get("current_position"),
+            "current_company": parsed_data.get("current_company"),
+            "total_experience_years": parsed_data.get("total_experience_years"),
+            "last_education": parsed_data.get("last_education"),
+            "graduation_batch": parsed_data.get("graduation_batch"),
+            "education": parsed_data.get("education", []),
         }
         result = db.cvs.insert_one(db_entry)
         cv_id = str(result.inserted_id)
 
-        parse_cv_task.delay(str(cv_id), final_path, original_name)
+        try:
+            parse_cv_task.delay(str(cv_id), final_path, original_name)
+        except Exception:
+            pass
 
         return {
-            "message": "CV uploaded successfully (duplicate replaced if found).",
+            "message": "CV uploaded and parsed successfully.",
             "cv_id": cv_id,
             "stored_filename": final_filename,
-            "status": "uploaded"
+            "status": "completed"
         }
 
     except Exception as e:
@@ -289,8 +303,45 @@ def cv_status(cv_id: str, credentials: HTTPAuthorizationCredentials = Depends(se
         "cv_id": cv_id
     }
 
+def _parse_and_store_cv(cv_id: str, file_path: str, original_name: str):
+    try:
+        ext = file_path.split(".")[-1].lower()
+        text = extract_text_from_pdf(file_path) if ext == "pdf" else extract_text_from_docx(file_path)
+        if not text or len(text.strip()) < 50:
+            db.cvs.update_one(
+                {"_id": ObjectId(cv_id)},
+                {"$set": {"processing_status": "error", "error": "Insufficient text extracted"}}
+            )
+            return
+        parsed_data = parse_cv_enhanced(text, file_name=original_name)
+        update_fields = {
+            "processing_status": "completed",
+            "raw_text": text,
+            "text_length": len(text),
+            "name": parsed_data.get("name"),
+            "email": parsed_data.get("email"),
+            "emails": parsed_data.get("emails", []),
+            "phone": parsed_data.get("phone"),
+            "phone_numbers": parsed_data.get("phone_numbers", []),
+            "skills": parsed_data.get("skills", []),
+            "current_position": parsed_data.get("current_position"),
+            "current_company": parsed_data.get("current_company"),
+            "total_experience_years": parsed_data.get("total_experience_years"),
+            "last_education": parsed_data.get("last_education"),
+            "graduation_batch": parsed_data.get("graduation_batch"),
+            "education": parsed_data.get("education", []),
+        }
+        db.cvs.update_one({"_id": ObjectId(cv_id)}, {"$set": update_fields})
+    except Exception as e:
+        db.cvs.update_one(
+            {"_id": ObjectId(cv_id)},
+            {"$set": {"processing_status": "error", "error": str(e)}}
+        )
+
+
 @router.post("/upload-zip")
 async def upload_zip(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     tags: str = Form(None),
     credentials: HTTPAuthorizationCredentials = Depends(security)
@@ -343,7 +394,7 @@ async def upload_zip(
                     result = db.cvs.insert_one(db_entry)
                     cv_id = str(result.inserted_id)
 
-                    parse_cv_task.delay(cv_id, dst_path, orig_name)
+                    background_tasks.add_task(_parse_and_store_cv, cv_id, dst_path, orig_name)
                     uploaded_cvs.append({
                         "cv_id": cv_id,
                         "original_filename": orig_name,
@@ -364,6 +415,26 @@ async def upload_zip(
         raise HTTPException(status_code=500, detail=f"Error handling ZIP: {str(e)}")
     finally:
         temp_dir.cleanup()
+
+
+@router.post("/reparse-stuck")
+async def reparse_stuck_cvs(
+    background_tasks: BackgroundTasks,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    user_data = decode_token(token)
+    user_email = user_data.get("sub")
+
+    stuck = list(db.cvs.find({"user_email": user_email, "processing_status": "uploaded"}))
+    count = 0
+    for cv in stuck:
+        cv_id = str(cv["_id"])
+        file_path = os.path.join(UPLOAD_DIR, cv.get("stored_filename", ""))
+        if os.path.exists(file_path):
+            background_tasks.add_task(_parse_and_store_cv, cv_id, file_path, cv.get("original_filename", ""))
+            count += 1
+    return {"message": f"Re-parsing {count} stuck CV(s) in background."}
 
 
 @router.patch("/cv/{cv_id}/tags")
