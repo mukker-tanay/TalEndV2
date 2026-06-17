@@ -81,9 +81,9 @@ async def upload_cv(
         text = extract_text_from_pdf(temp_path) if ext.lower() == ".pdf" else extract_text_from_docx(temp_path)
         parsed_data = parse_cv_enhanced(text)
 
-        name = parsed_data.get("name", "").strip().lower()
-        email = parsed_data.get("email", "").strip().lower()
-        phone = parsed_data.get("phone", "").strip()
+        name = (parsed_data.get("name") or "").strip().lower()
+        email = (parsed_data.get("email") or "").strip().lower()
+        phone = (parsed_data.get("phone") or "").strip()
 
         if not email and not phone:
             raise HTTPException(status_code=400, detail="Email or phone number is required in CV for deduplication.")

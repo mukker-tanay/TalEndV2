@@ -87,3 +87,32 @@ Resume text:
             "Total_Experience": None,
             "skills": []
         }
+
+
+def extract_name_with_gemini(cv_text: str) -> str | None:
+    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+    prompt = f"""Look at the beginning of this resume and find the candidate's full name.
+Return only the full name as a plain string. No explanation, no JSON, just the name.
+If you truly cannot find a name, return null.
+
+Resume text:
+\"\"\"{cv_text[:600]}\"\"\"
+"""
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    try:
+        response = requests.post(
+            f"{endpoint}?key={GEMINI_API_KEY}",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(payload)
+        )
+        result = response.json()
+        candidates = result.get("candidates")
+        if not candidates or "content" not in candidates[0]:
+            return None
+        text = candidates[0]["content"]["parts"][0]["text"].strip()
+        if text.lower() in ("null", "none", ""):
+            return None
+        return text
+    except Exception as e:
+        print("Gemini name extraction failed:", e)
+        return None

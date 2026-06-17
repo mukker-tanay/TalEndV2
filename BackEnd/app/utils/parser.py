@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 import os
 import pandas as pd
 import fitz  # pymupdf
-from app.utils.gemini_parser import extract_fields_with_gemini
+from app.utils.gemini_parser import extract_fields_with_gemini, extract_name_with_gemini
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -98,14 +98,16 @@ def parse_cv_enhanced(text: str, file_name: Optional[str] = None) -> dict:
 
     gemini_data = extract_fields_with_gemini(text)
 
+    name = gemini_data.get("name") or extract_name_with_gemini(text)
+
     parsed_data = {
-        "name": gemini_data.get("name"),
+        "name": name,
         "email": emails[0] if emails else None,
         "emails": emails,
         "phone": phones[0] if phones else None,
         "phone_numbers": phones,
         "skills": gemini_data.get("skills", []) or regex_skills,
-        "total_experience_years": gemini_data.get("Total Experience"),
+        "total_experience_years": gemini_data.get("Total_Experience"),
         "current_company": gemini_data.get("current_company"),
         "current_position": gemini_data.get("current_designation"),
         "education": education_entries,
