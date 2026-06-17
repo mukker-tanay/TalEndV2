@@ -1,5 +1,5 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form, Request, Body, BackgroundTasks
-import time
+import threading
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
 from uuid import uuid4
@@ -304,11 +304,7 @@ def cv_status(cv_id: str, credentials: HTTPAuthorizationCredentials = Depends(se
         "cv_id": cv_id
     }
 
-RETRY_DELAYS = [10, 30, 60]  # seconds between Gemini retry attempts
-
-def _parse_and_store_cv(cv_id: str, file_path: str, original_name: str, initial_delay: float = 0):
-    if initial_delay:
-        time.sleep(initial_delay)
+def _parse_and_store_cv(cv_id: str, file_path: str, original_name: str):
     try:
         ext = file_path.split(".")[-1].lower()
         text = extract_text_from_pdf(file_path) if ext == "pdf" else extract_text_from_docx(file_path)
@@ -318,26 +314,7 @@ def _parse_and_store_cv(cv_id: str, file_path: str, original_name: str, initial_
                 {"$set": {"processing_status": "error", "error": "Insufficient text extracted"}}
             )
             return
-
-        parsed_data = None
-        last_error = None
-        for attempt, delay in enumerate([0] + RETRY_DELAYS):
-            if delay:
-                time.sleep(delay)
-            try:
-                parsed_data = parse_cv_enhanced(text, file_name=original_name)
-                if parsed_data.get("name"):
-                    break
-            except Exception as e:
-                last_error = str(e)
-
-        if parsed_data is None:
-            db.cvs.update_one(
-                {"_id": ObjectId(cv_id)},
-                {"$set": {"processing_status": "error", "error": last_error or "Gemini parse failed"}}
-            )
-            return
-
+        parsed_data = parse_cv_enhanced(text, file_name=original_name)
         update_fields = {
             "processing_status": "completed",
             "raw_text": text,
@@ -361,6 +338,20 @@ def _parse_and_store_cv(cv_id: str, file_path: str, original_name: str, initial_
             {"_id": ObjectId(cv_id)},
             {"$set": {"processing_status": "error", "error": str(e)}}
         )
+
+
+def _parse_queue(cv_queue: list, batch_size: int = 5):
+    """Process a list of (cv_id, file_path, original_name) tuples, batch_size at a time."""
+    for i in range(0, len(cv_queue), batch_size):
+        batch = cv_queue[i:i + batch_size]
+        threads = [
+            threading.Thread(target=_parse_and_store_cv, args=(cv_id, path, name))
+            for cv_id, path, name in batch
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
 
 @router.post("/upload-zip")
@@ -396,7 +387,7 @@ async def upload_zip(
             zip_ref.extractall(temp_dir.name)
 
         uploaded_cvs = []
-        cv_index = 0
+        cv_queue = []
         for root, _, files in os.walk(temp_dir.name):
             for name in files:
                 if name.lower().endswith((".pdf", ".docx")):
@@ -418,10 +409,7 @@ async def upload_zip(
                     }
                     result = db.cvs.insert_one(db_entry)
                     cv_id = str(result.inserted_id)
-
-                    # Stagger calls by 3s per file so Gemini quota isn't hammered
-                    background_tasks.add_task(_parse_and_store_cv, cv_id, dst_path, orig_name, cv_index * 3)
-                    cv_index += 1
+                    cv_queue.append((cv_id, dst_path, orig_name))
                     uploaded_cvs.append({
                         "cv_id": cv_id,
                         "original_filename": orig_name,
@@ -430,6 +418,8 @@ async def upload_zip(
 
         if not uploaded_cvs:
             raise HTTPException(status_code=400, detail="No valid CV files found in ZIP.")
+
+        background_tasks.add_task(_parse_queue, cv_queue)
 
         return {
             "message": f"{len(uploaded_cvs)} CVs uploaded from ZIP.",
@@ -460,13 +450,15 @@ async def reparse_stuck_cvs(
             {"processing_status": "completed", "name": {"$in": [None, ""]}}
         ]
     }))
-    count = 0
+    cv_queue = []
     for cv in stuck:
         cv_id = str(cv["_id"])
         file_path = os.path.join(UPLOAD_DIR, cv.get("stored_filename", ""))
         if os.path.exists(file_path):
-            background_tasks.add_task(_parse_and_store_cv, cv_id, file_path, cv.get("original_filename", ""))
-            count += 1
+            cv_queue.append((cv_id, file_path, cv.get("original_filename", "")))
+    count = len(cv_queue)
+    if cv_queue:
+        background_tasks.add_task(_parse_queue, cv_queue)
     return {"message": f"Re-parsing {count} stuck CV(s) in background."}
 
 
