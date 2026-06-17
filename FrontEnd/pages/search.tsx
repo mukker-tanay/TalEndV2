@@ -111,6 +111,7 @@ export default function SearchPage() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!query.trim() && selectedTags.length === 0) return;
     setPage(1);
     await fetchResults(1);
   };
@@ -182,11 +183,10 @@ export default function SearchPage() {
             <div className="flex gap-3">
               <input
                 type="text"
-                placeholder="Search by conversational prompt (e.g., Python developer with 3 years of experience) or keywords..."
+                placeholder="Search by conversational prompt, keywords, or select tags below..."
                 className="flex-grow bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                required
               />
               <button type="submit" className="bg-gray-900 hover:bg-black text-white font-semibold px-6 py-2.5 rounded-xl transition-all shadow-sm text-sm">
                 {loading ? "Searching..." : "Search"}
@@ -389,11 +389,11 @@ export default function SearchPage() {
         </form>
 
         {/* Results */}
-        {results.length === 0 && !loading && query && (
-          <p className="text-gray-500 text-sm italic">No matching candidate profiles found in JobNoc database for "{query}".</p>
+        {results.length === 0 && !loading && (query || selectedTags.length > 0) && (
+          <p className="text-gray-500 text-sm italic">No matching candidate profiles found{query ? ` for "${query}"` : ""}.</p>
         )}
-        {results.length === 0 && !loading && !query && (
-          <p className="text-gray-500 text-sm italic">Enter technical keywords or candidate credentials in the query box above.</p>
+        {results.length === 0 && !loading && !query && selectedTags.length === 0 && (
+          <p className="text-gray-500 text-sm italic">Enter keywords or select a tag to browse candidates.</p>
         )}
 
         {pagination && (

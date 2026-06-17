@@ -63,7 +63,7 @@ SEARCH_FETCH_LIMIT = 500  # Max docs fetched from MongoDB before Python scoring
 
 @router.get("/search-cvs")
 def search_cvs(
-    query: str = Query(..., description="Conversational query or keyword boolean string"),
+    query: Optional[str] = Query(None, description="Conversational query or keyword boolean string"),
     tags: Optional[str] = Query(None),
     batch_min: Optional[int] = Query(None),
     batch_max: Optional[int] = Query(None),
@@ -78,17 +78,27 @@ def search_cvs(
     if not user_data:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    translation = translate_conversational_query(query)
-    is_conversational = translation.get("is_conversational", False)
+    query = (query or "").strip()
+    keyword_search = bool(query)
 
-    if is_conversational:
-        keywords = translation.get("keywords", [])
-        mode = "OR" if len(keywords) > 1 else "AND"
-        semantic_skills = [s.lower() for s in translation.get("skills", [])]
-        semantic_exp_min = translation.get("experience_min")
-        semantic_edu_kws = [e.lower() for e in translation.get("education_keywords", [])]
+    if keyword_search:
+        translation = translate_conversational_query(query)
+        is_conversational = translation.get("is_conversational", False)
+        if is_conversational:
+            keywords = translation.get("keywords", [])
+            mode = "OR" if len(keywords) > 1 else "AND"
+            semantic_skills = [s.lower() for s in translation.get("skills", [])]
+            semantic_exp_min = translation.get("experience_min")
+            semantic_edu_kws = [e.lower() for e in translation.get("education_keywords", [])]
+        else:
+            keywords, mode = parse_boolean_query(query)
+            semantic_skills = []
+            semantic_exp_min = None
+            semantic_edu_kws = []
     else:
-        keywords, mode = parse_boolean_query(query)
+        is_conversational = False
+        keywords = []
+        mode = "AND"
         semantic_skills = []
         semantic_exp_min = None
         semantic_edu_kws = []
@@ -147,7 +157,7 @@ def search_cvs(
         db_count += 1
         raw_text = cv.get("raw_text") or ""
 
-        if not search_in_text(raw_text, keywords, mode):
+        if keyword_search and not search_in_text(raw_text, keywords, mode):
             continue
 
         score = compute_match_score(
@@ -158,7 +168,7 @@ def search_cvs(
             company=cv.get("current_company"),
             name=cv.get("name"),
             email=cv.get("email")
-        )
+        ) if keyword_search else 0
 
         results.append({
             "_id": str(cv["_id"]),
@@ -180,7 +190,10 @@ def search_cvs(
             "processing_status": cv.get("processing_status")
         })
 
-    results.sort(key=lambda x: x["match_score"], reverse=True)
+    if keyword_search:
+        results.sort(key=lambda x: x["match_score"], reverse=True)
+    else:
+        results.sort(key=lambda x: x["upload_time"] or "", reverse=True)
 
     total_matching = len(results)
     skip = (page - 1) * limit
