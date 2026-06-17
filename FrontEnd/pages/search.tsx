@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import CVSlider, { CVType } from "../components/CVSlider";
 import Slider from "rc-slider";
@@ -40,6 +40,10 @@ export default function SearchPage() {
   const [batchMax, setBatchMax] = useState(2030);
   const [lastEducation, setLastEducation] = useState("");
   const [uploadRange, setUploadRange] = useState<string>("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const tagDropdownRef = useRef<HTMLDivElement>(null);
 
   const [token, setToken] = useState<string | null>(null);
 
@@ -55,6 +59,24 @@ export default function SearchPage() {
     }
   }, [router]);
 
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_URL}/tags`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setAvailableTags(data); })
+      .catch(() => {});
+  }, [token]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(e.target as Node)) {
+        setShowTagDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const fetchResults = async (pageNum: number) => {
     setLoading(true);
     if (!token) { setLoading(false); return; }
@@ -63,6 +85,8 @@ export default function SearchPage() {
     params.append("query", query);
     params.append("page", pageNum.toString());
     params.append("limit", "50");
+
+    if (selectedTags.length > 0) params.append("tags", selectedTags.join(","));
 
     if (showFilters) {
       if (batchMin > 1950) params.append("batch_min", batchMin.toString());
@@ -107,11 +131,33 @@ export default function SearchPage() {
     setSliderOpen(true);
   };
 
+  const downloadCSV = () => {
+    const headers = ["Name", "Email", "Phone"];
+    const rows = results.map((cv) => [cv.name || "", cv.email || "", cv.phone || ""]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "candidates.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
   const resetFilters = () => {
     setBatchMin(1950);
     setBatchMax(2030);
     setLastEducation("");
     setUploadRange("");
+    setSelectedTags([]);
   };
 
   return (
@@ -151,6 +197,64 @@ export default function SearchPage() {
             </p>
           </div>
 
+          {/* Tag filter dropdown — always visible */}
+          {availableTags.length > 0 && (
+            <div className="relative" ref={tagDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setShowTagDropdown((v) => !v)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold transition-all ${
+                  selectedTags.length > 0
+                    ? "bg-blue-50 border-blue-300 text-blue-700"
+                    : "bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <span>Tags</span>
+                {selectedTags.length > 0 && (
+                  <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                    {selectedTags.length}
+                  </span>
+                )}
+                <span className="text-gray-400 text-xs">{showTagDropdown ? "▲" : "▼"}</span>
+              </button>
+
+              {showTagDropdown && (
+                <div className="absolute top-full left-0 mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg p-3 min-w-[200px] max-h-60 overflow-y-auto">
+                  {availableTags.map((tag) => (
+                    <label key={tag} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer text-sm text-gray-700 font-medium">
+                      <input
+                        type="checkbox"
+                        checked={selectedTags.includes(tag)}
+                        onChange={() => toggleTag(tag)}
+                        className="accent-blue-600 w-3.5 h-3.5"
+                      />
+                      {tag}
+                    </label>
+                  ))}
+                  {selectedTags.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTags([])}
+                      className="mt-2 w-full text-center text-xs text-red-500 hover:text-red-600 font-semibold pt-2 border-t border-gray-100"
+                    >
+                      Clear Tags
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {selectedTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {selectedTags.map((tag) => (
+                    <span key={tag} className="inline-flex items-center bg-blue-50 border border-blue-200 text-blue-700 px-2.5 py-0.5 rounded-md text-xs font-semibold">
+                      {tag}
+                      <button type="button" onClick={() => toggleTag(tag)} className="ml-1.5 text-blue-400 hover:text-red-500 font-bold">×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Filter toggle */}
           <div className="flex items-center justify-between border-t border-gray-200 pt-4 mt-2">
@@ -274,10 +378,11 @@ export default function SearchPage() {
             <div className="text-xs text-blue-800 bg-blue-50 border border-blue-200 p-3 rounded-xl font-semibold">
               <strong>Active Sourcing Filters:</strong> {
                 [
+                  selectedTags.length > 0 ? `Tags: ${selectedTags.join(", ")}` : null,
                   batchMin > 1950 || batchMax < 2030 ? `Batch: ${batchMin}-${batchMax}` : null,
                   lastEducation.trim() ? `Education: ${lastEducation}` : null,
                   uploadRange ? `Uploaded: ${uploadRange}` : null
-                ].filter(Boolean).join(", ") || "None"
+                ].filter(Boolean).join(" · ") || "None"
               }
             </div>
           )}
@@ -292,8 +397,19 @@ export default function SearchPage() {
         )}
 
         {pagination && (
-          <div className="mb-4 text-xs text-gray-500 font-semibold">
-            {pagination.total_matching} candidate{pagination.total_matching !== 1 ? "s" : ""} matched · Page {page} of {pagination.total_pages}
+          <div className="mb-4 flex items-center justify-between">
+            <span className="text-xs text-gray-500 font-semibold">
+              {pagination.total_matching} candidate{pagination.total_matching !== 1 ? "s" : ""} matched · Page {page} of {pagination.total_pages}
+            </span>
+            {results.length > 0 && (
+              <button
+                type="button"
+                onClick={downloadCSV}
+                className="flex items-center gap-2 px-4 py-1.5 bg-gray-900 hover:bg-black text-white text-xs font-semibold rounded-xl shadow-sm transition-all"
+              >
+                ↓ Download CSV
+              </button>
+            )}
           </div>
         )}
 

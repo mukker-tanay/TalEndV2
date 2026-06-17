@@ -56,6 +56,9 @@ export default function Dashboard() {
 
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [editingTagsCvId, setEditingTagsCvId] = useState<string | null>(null);
+  const [editTagInput, setEditTagInput] = useState("");
+  const [editTags, setEditTags] = useState<string[]>([]);
 
   useEffect(() => {
     if (token) {
@@ -106,7 +109,7 @@ export default function Dashboard() {
     const isZip = file.name.endsWith(".zip");
     const formData = new FormData();
     formData.append("file", file);
-    if (!isZip) formData.append("tags", JSON.stringify(tags));
+    formData.append("tags", JSON.stringify(tags));
 
     try {
       const res = await fetch(
@@ -124,6 +127,7 @@ export default function Dashboard() {
       if (isZip) {
         setMessage(`ZIP uploaded successfully, ${data.uploaded?.length || 0} candidates parsing in background.`);
         setFile(null);
+        setTags([]);
         fetchCVs();
         return;
       }
@@ -181,6 +185,42 @@ export default function Dashboard() {
 
   const removeTag = (tag: string) => {
     setTags(tags.filter((t) => t !== tag));
+  };
+
+  const startEditingTags = (cv: UploadedCV) => {
+    setEditingTagsCvId(cv.id);
+    setEditTags(cv.tags ? [...cv.tags] : []);
+    setEditTagInput("");
+  };
+
+  const handleEditTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && editTagInput.trim()) {
+      e.preventDefault();
+      if (!editTags.includes(editTagInput.trim())) {
+        setEditTags([...editTags, editTagInput.trim()]);
+      }
+      setEditTagInput("");
+    }
+  };
+
+  const saveTagsForCv = async (cvId: string) => {
+    try {
+      const res = await fetch(`${API_URL}/cv/${cvId}/tags`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editTags),
+      });
+      if (!res.ok) throw new Error("Failed to update tags");
+      setCvList((prev) =>
+        prev.map((cv) => (cv.id === cvId ? { ...cv, tags: [...editTags] } : cv))
+      );
+      setEditingTagsCvId(null);
+    } catch {
+      setMessage("Failed to save tags.");
+    }
   };
 
   const handleLogout = () => {
@@ -251,10 +291,14 @@ export default function Dashboard() {
               />
             </div>
 
-            {/* Show tags only if not zip */}
-            {file && !file.name.endsWith(".zip") && (
+            {file && (
               <div className="mt-4">
-                <label className="block mb-1.5 text-xs font-bold text-gray-700 uppercase tracking-wider">Classification Tags</label>
+                <label className="block mb-1.5 text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Classification Tags
+                  {file.name.endsWith(".zip") && (
+                    <span className="ml-2 text-gray-400 font-normal normal-case">— applied to all CVs in this ZIP</span>
+                  )}
+                </label>
                 <input
                   type="text"
                   value={tagInput}
@@ -332,16 +376,68 @@ export default function Dashboard() {
                       </span>
                     </td>
                     <td className="p-4">
-                      {cv.tags && cv.tags.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {cv.tags.map((tag) => (
-                            <span key={tag} className="bg-gray-100 text-gray-700 border border-gray-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
-                              {tag}
-                            </span>
-                          ))}
+                      {editingTagsCvId === cv.id ? (
+                        <div className="flex flex-col gap-1.5 min-w-[200px]">
+                          <div className="flex flex-wrap gap-1">
+                            {editTags.map((tag) => (
+                              <span key={tag} className="inline-flex items-center bg-blue-50 border border-blue-200 text-blue-700 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                                {tag}
+                                <button
+                                  type="button"
+                                  className="ml-1.5 text-blue-400 hover:text-red-500 font-bold"
+                                  onClick={() => setEditTags(editTags.filter((t) => t !== tag))}
+                                >
+                                  x
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                          <input
+                            type="text"
+                            value={editTagInput}
+                            autoFocus
+                            onChange={(e) => setEditTagInput(e.target.value)}
+                            onKeyDown={handleEditTagKeyDown}
+                            placeholder="Add tag + Enter"
+                            className="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-blue-500"
+                          />
+                          <div className="flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => saveTagsForCv(cv.id)}
+                              className="text-[10px] font-semibold bg-gray-900 text-white px-2.5 py-0.5 rounded-md hover:bg-black"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingTagsCvId(null)}
+                              className="text-[10px] font-semibold text-gray-500 hover:text-gray-700"
+                            >
+                              Cancel
+                            </button>
+                          </div>
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-xs">No tags</span>
+                        <div className="flex flex-wrap gap-1 items-center group">
+                          {cv.tags && cv.tags.length > 0 ? (
+                            cv.tags.map((tag) => (
+                              <span key={tag} className="bg-gray-100 text-gray-700 border border-gray-200 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                                {tag}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-gray-400 text-xs">No tags</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => startEditingTags(cv)}
+                            className="ml-1 text-gray-300 hover:text-blue-500 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Edit tags"
+                          >
+                            ✎
+                          </button>
+                        </div>
                       )}
                     </td>
                     <td className="p-4 text-gray-500 text-xs">

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form, Request
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form, Request, Body
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
 from uuid import uuid4
@@ -292,6 +292,7 @@ def cv_status(cv_id: str, credentials: HTTPAuthorizationCredentials = Depends(se
 @router.post("/upload-zip")
 async def upload_zip(
     file: UploadFile = File(...),
+    tags: str = Form(None),
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     token = credentials.credentials
@@ -300,6 +301,15 @@ async def upload_zip(
 
     if not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="Only ZIP files are allowed.")
+
+    tags_list = []
+    if tags:
+        try:
+            tags_list = json.loads(tags)
+            if not isinstance(tags_list, list):
+                tags_list = []
+        except Exception:
+            tags_list = []
 
     temp_dir = TemporaryDirectory()
     try:
@@ -328,7 +338,7 @@ async def upload_zip(
                         "file_type": orig_name.split(".")[-1].lower(),
                         "upload_time": datetime.utcnow(),
                         "processing_status": "uploaded",
-                        "tags": []
+                        "tags": tags_list
                     }
                     result = db.cvs.insert_one(db_entry)
                     cv_id = str(result.inserted_id)
@@ -354,3 +364,25 @@ async def upload_zip(
         raise HTTPException(status_code=500, detail=f"Error handling ZIP: {str(e)}")
     finally:
         temp_dir.cleanup()
+
+
+@router.patch("/cv/{cv_id}/tags")
+async def update_cv_tags(
+    cv_id: str,
+    tags: list[str] = Body(...),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    user_data = decode_token(token)
+    user_email = user_data.get("sub")
+
+    try:
+        result = db.cvs.update_one(
+            {"_id": ObjectId(cv_id), "user_email": user_email},
+            {"$set": {"tags": tags}}
+        )
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="CV not found")
+        return {"message": "Tags updated successfully", "tags": tags}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating tags: {str(e)}")

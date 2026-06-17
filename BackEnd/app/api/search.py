@@ -213,6 +213,16 @@ def search_cvs(
     }))
 
 
+@router.get("/tags")
+def get_all_tags(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    user_data = decode_token(token)
+    if not user_data:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    tags = db.cvs.distinct("tags")
+    return sorted([t for t in tags if t])
+
+
 @router.get("/debug-cv/{cv_id}")
 def debug_cv(
     cv_id: str,
