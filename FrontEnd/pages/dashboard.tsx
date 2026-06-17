@@ -360,7 +360,7 @@ export default function Dashboard() {
             <h2 className="text-xl font-bold text-gray-900 tracking-tight">Sourced Candidate Ledger</h2>
             <p className="text-xs text-gray-500 mt-0.5">List of all parsed candidates sorted by upload timeline</p>
           </div>
-          {cvList.some((cv) => cv.status === "uploaded") && (
+          {cvList.some((cv) => cv.status === "uploaded" || !cv.name) && (
             <button
               type="button"
               onClick={reparseStuck}

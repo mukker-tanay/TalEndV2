@@ -426,7 +426,13 @@ async def reparse_stuck_cvs(
     user_data = decode_token(token)
     user_email = user_data.get("sub")
 
-    stuck = list(db.cvs.find({"user_email": user_email, "processing_status": "uploaded"}))
+    stuck = list(db.cvs.find({
+        "user_email": user_email,
+        "$or": [
+            {"processing_status": "uploaded"},
+            {"processing_status": "completed", "name": {"$in": [None, ""]}}
+        ]
+    }))
     count = 0
     for cv in stuck:
         cv_id = str(cv["_id"])

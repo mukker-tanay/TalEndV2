@@ -98,8 +98,13 @@ def parse_cv_enhanced(text: str, file_name: Optional[str] = None) -> dict:
 
     gemini_data = extract_fields_with_gemini(text)
 
+    gemini_name = gemini_data.get("name")
+    if not gemini_name:
+        person_ents = [ent.text for ent in doc.ents if ent.label_ == "PERSON"]
+        gemini_name = person_ents[0] if person_ents else None
+
     parsed_data = {
-        "name": gemini_data.get("name"),
+        "name": gemini_name,
         "email": emails[0] if emails else None,
         "emails": emails,
         "phone": phones[0] if phones else None,
