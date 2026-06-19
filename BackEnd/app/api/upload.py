@@ -254,41 +254,37 @@ async def verify_cv(
         # 1. Name correction & learning
         if payload.name is not None:
             new_name = payload.name.strip()
-            if new_name != cv_data.get("name"):
-                updates["name"] = new_name
-                updates["name_confidence"] = "high"
-                updates["name_source"] = "user"
-                learn_name_mapping(
-                    cv_data.get("original_filename", ""),
-                    cv_data.get("email", ""),
-                    new_name
-                )
+            updates["name"] = new_name
+            updates["name_confidence"] = "high"
+            updates["name_source"] = "user"
+            learn_name_mapping(
+                cv_data.get("original_filename", ""),
+                cv_data.get("email", ""),
+                new_name
+            )
         
         # 2. Company correction & learning
         if payload.current_company is not None:
             new_company = payload.current_company.strip()
-            if new_company != cv_data.get("current_company"):
-                updates["current_company"] = new_company
-                updates["company_confidence"] = "high"
-                updates["company_source"] = "user"
-                learn_company(new_company)
+            updates["current_company"] = new_company
+            updates["company_confidence"] = "high"
+            updates["company_source"] = "user"
+            learn_company(new_company)
 
         # 3. Position/Designation correction & learning
         if payload.current_position is not None:
             new_position = payload.current_position.strip()
-            if new_position != cv_data.get("current_position"):
-                updates["current_position"] = new_position
-                updates["position_confidence"] = "high"
-                updates["position_source"] = "user"
-                learn_designation(new_position)
+            updates["current_position"] = new_position
+            updates["position_confidence"] = "high"
+            updates["position_source"] = "user"
+            learn_designation(new_position)
 
         # 4. Experience correction
         if payload.total_experience_years is not None:
             new_exp = payload.total_experience_years
-            if new_exp != cv_data.get("total_experience_years"):
-                updates["total_experience_years"] = new_exp
-                updates["experience_confidence"] = "high"
-                updates["experience_source"] = "user"
+            updates["total_experience_years"] = new_exp
+            updates["experience_confidence"] = "high"
+            updates["experience_source"] = "user"
 
         if updates:
             db.feedback_logs.insert_one({

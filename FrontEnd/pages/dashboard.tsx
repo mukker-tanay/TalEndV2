@@ -555,7 +555,10 @@ export default function Dashboard() {
           cvList={uploadedCVsToCVTypes(cvList)}
           current={sliderIndex}
           setCurrent={setSliderIndex}
-          onClose={() => setSliderOpen(false)}
+          onClose={() => {
+            setSliderOpen(false);
+            fetchCVs();
+          }}
         />
       )}
     </div>

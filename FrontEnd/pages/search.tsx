@@ -129,6 +129,7 @@ export default function SearchPage() {
 
   const closePanel = () => {
     setSliderOpen(false);
+    fetchResults(page);
   };
 
   const openSlider = (cv: SearchResult) => {
