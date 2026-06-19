@@ -10,8 +10,13 @@ export type CVType = {
   original_filename: string;
   stored_filename: string;
   name?: string;
+  name_confidence?: string;
+  current_company?: string;
+  company_confidence?: string;
   current_position?: string;
-  total_experience_years?: number;
+  position_confidence?: string;
+  total_experience_years?: number | string;
+  experience_confidence?: string;
   skills?: string[];
   match_score?: number;
   email?: string;
@@ -31,6 +36,63 @@ const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClos
   const [pdfError, setPdfError] = useState(false);
 
   const cv = cvList[current];
+
+  const [name, setName] = useState(cv?.name || "");
+  const [company, setCompany] = useState(cv?.current_company || "");
+  const [position, setPosition] = useState(cv?.current_position || "");
+  const [experience, setExperience] = useState(cv?.total_experience_years || "");
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+
+  useEffect(() => {
+    setName(cv?.name || "");
+    setCompany(cv?.current_company || "");
+    setPosition(cv?.current_position || "");
+    setExperience(cv?.total_experience_years || "");
+    setSaveMessage("");
+  }, [cv]);
+
+  const handleSaveVerification = async () => {
+    setSaving(true);
+    setSaveMessage("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/cv/${cv._id}/verify`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name.trim() || null,
+          current_company: company.trim() || null,
+          current_position: position.trim() || null,
+          total_experience_years: experience !== "" ? parseFloat(experience.toString()) : null,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || "Failed to save verification.");
+      }
+
+      setSaveMessage("Saved & verified!");
+      
+      // Update local object so it updates parent view reactively
+      cv.name = name;
+      cv.name_confidence = "high";
+      cv.current_company = company;
+      cv.company_confidence = "high";
+      cv.current_position = position;
+      cv.position_confidence = "high";
+      cv.total_experience_years = experience;
+      cv.experience_confidence = "high";
+    } catch (err: any) {
+      setSaveMessage(err.message || "Failed to save.");
+    } finally {
+      setSaving(false);
+    }
+  };
   const storedFilename = cv?.stored_filename ?? "";
   const isPDF = storedFilename.toLowerCase().endsWith(".pdf");
   const isDOC = /\.(docx?)$/i.test(storedFilename);
@@ -144,6 +206,94 @@ const CVSlider: React.FC<CVSliderProps> = ({ cvList, current, setCurrent, onClos
               <p className="text-sm text-red-400 font-semibold">Unsupported resume file format.</p>
             </div>
           )}
+        </div>
+
+        {/* Verification Form */}
+        <div className="px-6 py-4 border-t border-gray-200 bg-white">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Candidate Verification</h4>
+            {saveMessage && (
+              <span className={`text-xs font-semibold ${saveMessage.includes("success") || saveMessage.includes("verified") ? "text-green-600" : "text-red-500"}`}>
+                {saveMessage}
+              </span>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3.5 mb-4">
+            <div>
+              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                Full Name
+                {(cv.name_confidence === "medium" || cv.name_confidence === "low") && (
+                  <span className="px-1.5 py-0.1 bg-amber-100 text-amber-700 rounded text-[8px] border border-amber-200 uppercase font-semibold">verify</span>
+                )}
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Candidate name"
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-blue-500 transition-all font-sans"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                Current Employer
+                {cv.current_company && (cv.company_confidence === "medium" || cv.company_confidence === "low") && (
+                  <span className="px-1.5 py-0.1 bg-amber-100 text-amber-700 rounded text-[8px] border border-amber-200 uppercase font-semibold">verify</span>
+                )}
+              </label>
+              <input
+                type="text"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                placeholder="Current company"
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-blue-500 transition-all font-sans"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                Job Designation
+                {cv.current_position && (cv.position_confidence === "medium" || cv.position_confidence === "low") && (
+                  <span className="px-1.5 py-0.1 bg-amber-100 text-amber-700 rounded text-[8px] border border-amber-200 uppercase font-semibold">verify</span>
+                )}
+              </label>
+              <input
+                type="text"
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                placeholder="Job title"
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-blue-500 transition-all font-sans"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                Total Experience (Years)
+                {cv.total_experience_years !== undefined && cv.total_experience_years !== null && (cv.experience_confidence === "medium" || cv.experience_confidence === "low") && (
+                  <span className="px-1.5 py-0.1 bg-amber-100 text-amber-700 rounded text-[8px] border border-amber-200 uppercase font-semibold">verify</span>
+                )}
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                value={experience}
+                onChange={(e) => setExperience(e.target.value)}
+                placeholder="Years of experience"
+                className="w-full bg-gray-50 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-blue-500 transition-all font-sans"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSaveVerification}
+            disabled={saving}
+            className="w-full text-center py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all disabled:opacity-50 font-sans"
+          >
+            {saving ? "Saving & Learning..." : "Verify & Save Details"}
+          </button>
         </div>
 
         {/* Dynamic Outreach Toolbar */}

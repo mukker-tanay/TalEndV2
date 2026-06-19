@@ -11,11 +11,16 @@ if (typeof window !== 'undefined' && window.location.hostname === 'jobnoc.com') 
 type SearchResult = {
   _id: string;
   name?: string;
+  name_confidence?: string;
   email?: string;
   phone?: string;
   location?: string;
   current_company?: string;
+  company_confidence?: string;
   current_position?: string;
+  position_confidence?: string;
+  total_experience_years?: number | string;
+  experience_confidence?: string;
   last_education?: string;
   graduation_batch?: number;
   skills?: string[];

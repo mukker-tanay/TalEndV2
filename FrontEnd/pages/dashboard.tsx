@@ -31,6 +31,13 @@ function uploadedCVsToCVTypes(cvList: UploadedCV[]): CVType[] {
     original_filename: cv.filename,
     stored_filename: cv.stored_filename,
     name: cv.name,
+    name_confidence: cv.name_confidence,
+    current_company: cv.current_company,
+    company_confidence: cv.company_confidence,
+    current_position: cv.current_position,
+    position_confidence: cv.position_confidence,
+    total_experience_years: cv.total_experience_years,
+    experience_confidence: cv.experience_confidence,
   }));
 }
 

@@ -13,6 +13,7 @@ import subprocess
 from datetime import datetime
 from bson import ObjectId
 from typing import Optional
+from pydantic import BaseModel
 import json
 from urllib.parse import unquote
 from slowapi import Limiter
@@ -220,6 +221,90 @@ def list_user_cvs(credentials: HTTPAuthorizationCredentials = Depends(security))
         })
 
     return result
+
+
+class VerifyCVRequest(BaseModel):
+    name: Optional[str] = None
+    current_company: Optional[str] = None
+    current_position: Optional[str] = None
+    total_experience_years: Optional[float] = None
+
+
+@router.patch("/cv/{cv_id}/verify")
+async def verify_cv(
+    cv_id: str,
+    payload: VerifyCVRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    user_data = decode_token(token)
+    user_email = user_data.get("sub")
+
+    try:
+        cv_data = db.cvs.find_one({
+            "_id": ObjectId(cv_id),
+            "user_email": user_email
+        })
+        if not cv_data:
+            raise HTTPException(status_code=404, detail="CV not found")
+
+        updates = {}
+        from app.utils.learning import learn_company, learn_designation, learn_name_mapping
+        
+        # 1. Name correction & learning
+        if payload.name is not None:
+            new_name = payload.name.strip()
+            if new_name != cv_data.get("name"):
+                updates["name"] = new_name
+                updates["name_confidence"] = "high"
+                updates["name_source"] = "user"
+                learn_name_mapping(
+                    cv_data.get("original_filename", ""),
+                    cv_data.get("email", ""),
+                    new_name
+                )
+        
+        # 2. Company correction & learning
+        if payload.current_company is not None:
+            new_company = payload.current_company.strip()
+            if new_company != cv_data.get("current_company"):
+                updates["current_company"] = new_company
+                updates["company_confidence"] = "high"
+                updates["company_source"] = "user"
+                learn_company(new_company)
+
+        # 3. Position/Designation correction & learning
+        if payload.current_position is not None:
+            new_position = payload.current_position.strip()
+            if new_position != cv_data.get("current_position"):
+                updates["current_position"] = new_position
+                updates["position_confidence"] = "high"
+                updates["position_source"] = "user"
+                learn_designation(new_position)
+
+        # 4. Experience correction
+        if payload.total_experience_years is not None:
+            new_exp = payload.total_experience_years
+            if new_exp != cv_data.get("total_experience_years"):
+                updates["total_experience_years"] = new_exp
+                updates["experience_confidence"] = "high"
+                updates["experience_source"] = "user"
+
+        if updates:
+            db.feedback_logs.insert_one({
+                "cv_id": ObjectId(cv_id),
+                "user_email": user_email,
+                "corrections": updates,
+                "timestamp": datetime.utcnow()
+            })
+            db.cvs.update_one(
+                {"_id": ObjectId(cv_id), "user_email": user_email},
+                {"$set": updates}
+            )
+
+        return {"message": "CV verified and learning registered successfully", "updated": updates}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error verifying CV: {str(e)}")
 
 
 @router.get("/cv/download/{filename}")

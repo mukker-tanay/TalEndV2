@@ -234,8 +234,19 @@ def _title_in_line(line):
     low = re.sub(r"[^a-z &/]", " ", line.lower())
     toks = low.split()
     best = None
-    for n in range(min(_TITLE_MAXW, len(toks)), 1, -1):
-        hit = next((g for g in _ngrams(toks, n) if g in TITLES), None)
+    
+    # Merge custom user-verified titles dynamically
+    try:
+        from app.utils.learning import get_custom_titles
+        custom = get_custom_titles()
+        all_titles = TITLES | custom
+        title_maxw = max(_TITLE_MAXW, max((len(t.split()) for t in custom), default=6))
+    except Exception:
+        all_titles = TITLES
+        title_maxw = _TITLE_MAXW
+
+    for n in range(min(title_maxw, len(toks)), 1, -1):
+        hit = next((g for g in _ngrams(toks, n) if g in all_titles), None)
         if hit and (best is None or len(hit) > len(best)):
             best = hit
     return best
@@ -266,6 +277,22 @@ def _extract_company_designation(secs, full, emails):
     lines = [l.strip() for l in exp.splitlines() if l.strip()]
     region = lines[:25]
     company = c_conf = desig = d_conf = None
+
+    # Check experience section for dynamically learned/verified companies first
+    try:
+        from app.utils.learning import get_known_companies
+        known_cos = get_known_companies()
+        if known_cos:
+            for l in region:
+                for co in known_cos:
+                    if re.search(rf"\b{re.escape(co)}\b", l, re.I):
+                        company = co
+                        c_conf = "high"
+                        break
+                if company:
+                    break
+    except Exception:
+        pass
 
     for l in region:                                  # 1) explicit labels (strongest)
         if not desig:

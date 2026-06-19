@@ -317,6 +317,17 @@ def resolve_name(text, filename="", file_path=None):
     "source": str|None}``. ``low`` means the caller should fall back to Gemini.
     """
     text = text or ""
+    
+    # Try looking up user-learned name mapping first
+    try:
+        from app.utils.learning import get_name_mapping
+        em_temp = m_email(text)
+        mapped_name = get_name_mapping(filename, em_temp or "")
+        if mapped_name:
+            return {"name": mapped_name, "confidence": "high", "source": "user_learning"}
+    except Exception:
+        pass
+
     spans, page_h = _font_spans(file_path)
 
     cands = []  # {name, source}
