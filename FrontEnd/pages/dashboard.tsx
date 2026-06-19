@@ -10,6 +10,13 @@ if (typeof window !== 'undefined' && window.location.hostname === 'jobnoc.com') 
 type UploadedCV = {
   id: string;
   name?: string;
+  name_confidence?: string;
+  current_company?: string;
+  company_confidence?: string;
+  current_position?: string;
+  position_confidence?: string;
+  total_experience_years?: number | string;
+  experience_confidence?: string;
   filename: string;
   stored_filename: string;
   uploaded_at: string;
@@ -394,8 +401,45 @@ export default function Dashboard() {
               <tbody className="divide-y divide-gray-200">
                 {cvList.map((cv) => (
                   <tr key={cv.id} className="hover:bg-gray-100 transition-all duration-150">
-                    <td className="p-4 font-semibold text-gray-900">
-                      {cv.name || <span className="text-gray-400 font-normal italic">Name pending parsing</span>}
+                    <td className="p-4 text-gray-900">
+                      <div className="font-semibold flex items-center flex-wrap gap-1">
+                        {cv.name || <span className="text-gray-400 font-normal italic">Name pending parsing</span>}
+                        {cv.name && (cv.name_confidence === "medium" || cv.name_confidence === "low") && (
+                          <span
+                            title="Low-confidence name — please verify"
+                            className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200"
+                          >
+                            verify
+                          </span>
+                        )}
+                      </div>
+                      {cv.name && (cv.current_position || cv.current_company || (cv.total_experience_years !== undefined && cv.total_experience_years !== null)) && (
+                        <div className="text-xs text-gray-500 font-normal mt-1 flex items-center gap-1.5 flex-wrap">
+                          <span>
+                            {[
+                              cv.current_position,
+                              cv.current_company,
+                              (cv.total_experience_years !== undefined && cv.total_experience_years !== null) ? `${cv.total_experience_years} y` : null
+                            ].filter(Boolean).join(" · ")}
+                          </span>
+                          {((cv.current_company && (cv.company_confidence === "medium" || cv.company_confidence === "low")) ||
+                            (cv.current_position && (cv.position_confidence === "medium" || cv.position_confidence === "low")) ||
+                            (cv.total_experience_years !== undefined && cv.total_experience_years !== null && (cv.experience_confidence === "medium" || cv.experience_confidence === "low"))) && (
+                            <span
+                              title={`Low confidence in: ${
+                                [
+                                  (cv.company_confidence === "medium" || cv.company_confidence === "low") ? "company" : "",
+                                  (cv.position_confidence === "medium" || cv.position_confidence === "low") ? "position" : "",
+                                  (cv.experience_confidence === "medium" || cv.experience_confidence === "low") ? "experience" : ""
+                                ].filter(Boolean).join(", ")
+                              }`}
+                              className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium bg-amber-100 text-amber-700 border border-amber-200"
+                            >
+                              verify details
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="p-4">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${

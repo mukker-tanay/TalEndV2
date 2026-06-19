@@ -35,7 +35,7 @@ def parse_cv_task(cv_id, file_path, original_name):
             )
             return
 
-        parsed_data = parse_cv_enhanced(extracted_text, file_name=original_name)
+        parsed_data = parse_cv_enhanced(extracted_text, file_name=original_name, file_path=file_path)
         update_fields = parsed_data.copy()
 
         # ✅ Add raw_text for search and mark as completed

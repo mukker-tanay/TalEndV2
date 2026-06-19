@@ -81,7 +81,7 @@ async def upload_cv(
             f.write(content)
 
         text = extract_text_from_pdf(temp_path) if ext.lower() == ".pdf" else extract_text_from_docx(temp_path)
-        parsed_data = parse_cv_enhanced(text)
+        parsed_data = parse_cv_enhanced(text, file_name=original_name, file_path=temp_path)
 
         name = (parsed_data.get("name") or "").strip().lower()
         email = (parsed_data.get("email") or "").strip().lower()
@@ -141,17 +141,26 @@ async def upload_cv(
             "raw_text": text,
             "text_length": len(text),
             "name": parsed_data.get("name"),
+            "name_confidence": parsed_data.get("name_confidence"),
+            "name_source": parsed_data.get("name_source"),
             "email": parsed_data.get("email"),
             "emails": parsed_data.get("emails", []),
             "phone": parsed_data.get("phone"),
             "phone_numbers": parsed_data.get("phone_numbers", []),
             "skills": parsed_data.get("skills", []),
             "current_position": parsed_data.get("current_position"),
+            "position_confidence": parsed_data.get("position_confidence"),
+            "position_source": parsed_data.get("position_source"),
             "current_company": parsed_data.get("current_company"),
+            "company_confidence": parsed_data.get("company_confidence"),
+            "company_source": parsed_data.get("company_source"),
             "total_experience_years": parsed_data.get("total_experience_years"),
+            "experience_confidence": parsed_data.get("experience_confidence"),
+            "experience_source": parsed_data.get("experience_source"),
             "last_education": parsed_data.get("last_education"),
             "graduation_batch": parsed_data.get("graduation_batch"),
             "education": parsed_data.get("education", []),
+            "sections": parsed_data.get("sections", {}),
         }
         result = db.cvs.insert_one(db_entry)
         cv_id = str(result.inserted_id)
@@ -200,6 +209,13 @@ def list_user_cvs(credentials: HTTPAuthorizationCredentials = Depends(security))
             "uploaded_at": cv.get("upload_time").isoformat(),
             "status": cv.get("processing_status", "unknown"),
             "name": cv.get("name"),
+            "name_confidence": cv.get("name_confidence"),
+            "current_company": cv.get("current_company"),
+            "company_confidence": cv.get("company_confidence"),
+            "current_position": cv.get("current_position"),
+            "position_confidence": cv.get("position_confidence"),
+            "total_experience_years": cv.get("total_experience_years"),
+            "experience_confidence": cv.get("experience_confidence"),
             "tags": cv.get("tags", [])
         })
 
@@ -325,23 +341,32 @@ def _parse_and_store_cv(cv_id: str, file_path: str, original_name: str):
                 {"$set": {"processing_status": "error", "error": "Insufficient text extracted"}}
             )
             return
-        parsed_data = parse_cv_enhanced(text, file_name=original_name)
+        parsed_data = parse_cv_enhanced(text, file_name=original_name, file_path=file_path)
         update_fields = {
             "processing_status": "completed",
             "raw_text": text,
             "text_length": len(text),
             "name": parsed_data.get("name"),
+            "name_confidence": parsed_data.get("name_confidence"),
+            "name_source": parsed_data.get("name_source"),
             "email": parsed_data.get("email"),
             "emails": parsed_data.get("emails", []),
             "phone": parsed_data.get("phone"),
             "phone_numbers": parsed_data.get("phone_numbers", []),
             "skills": parsed_data.get("skills", []),
             "current_position": parsed_data.get("current_position"),
+            "position_confidence": parsed_data.get("position_confidence"),
+            "position_source": parsed_data.get("position_source"),
             "current_company": parsed_data.get("current_company"),
+            "company_confidence": parsed_data.get("company_confidence"),
+            "company_source": parsed_data.get("company_source"),
             "total_experience_years": parsed_data.get("total_experience_years"),
+            "experience_confidence": parsed_data.get("experience_confidence"),
+            "experience_source": parsed_data.get("experience_source"),
             "last_education": parsed_data.get("last_education"),
             "graduation_batch": parsed_data.get("graduation_batch"),
             "education": parsed_data.get("education", []),
+            "sections": parsed_data.get("sections", {}),
         }
         db.cvs.update_one({"_id": ObjectId(cv_id)}, {"$set": update_fields})
     except Exception as e:
