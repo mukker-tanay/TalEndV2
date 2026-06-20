@@ -461,9 +461,11 @@ def extract_experience(secs, full, filename=""):
 
     ranges = find_date_ranges(secs.get("experience", "") or full)
     if ranges:
+        # Span (earliest start -> latest end) is a WEAK proxy for total experience:
+        # internships overlapping study years inflate it -> "medium", routed to Gemini.
         span = max(e for _, e, _ in ranges) - min(s for s, _, _ in ranges)
         if 0 < span <= 45:
-            return round(span, 1), "high" if len(ranges) >= 1 else "medium"
+            return round(span, 1), "medium"
 
     m = re.search(r"(\d{1,2}(?:\.\d+)?)\s*\+?\s*(?:years?|yrs)\b", full, re.I)
     if m:

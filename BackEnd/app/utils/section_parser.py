@@ -386,9 +386,13 @@ def _extract_experience(secs, full, filename=""):
 
     ranges = find_date_ranges(secs.get("experience", "") or full)
     if ranges:
+        # Span = earliest start -> latest end. This is only a WEAK proxy for total
+        # professional experience: internships that overlap study years (or any old
+        # date in the section) inflate it (e.g. a fresher with a 2020 internship
+        # reads as 6 yrs). So it's "medium" -> routed to Gemini, never trusted as-is.
         span = max(e for _, e, _ in ranges) - min(s for s, _, _ in ranges)
         if 0 < span <= 45:
-            return round(span, 1), "high"
+            return round(span, 1), "medium"
 
     m = re.search(r"(\d{1,2}(?:\.\d+)?)\s*\+?\s*(?:years?|yrs)\b", full, re.I)
     if m:
