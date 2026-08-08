@@ -11,6 +11,7 @@ type UserData = {
   name?: string;
   email: string;
   role: string;
+  disabled?: boolean;
 };
 
 export default function AdminDashboard() {
@@ -25,6 +26,7 @@ export default function AdminDashboard() {
   
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const role = typeof window !== "undefined" ? localStorage.getItem("role") : null;
+  const currentUserEmail = typeof window !== "undefined" ? localStorage.getItem("email") : null;
 
   useEffect(() => {
     const requirePassChange = typeof window !== "undefined" ? localStorage.getItem("require_password_change") : null;
@@ -106,6 +108,69 @@ export default function AdminDashboard() {
         throw new Error(data.detail || "Failed to update role");
       }
       
+      fetchUsers();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleResetPassword = async (email: string) => {
+    if (!confirm(`Reset password for ${email}? This will invalidate their current password.`)) return;
+
+    try {
+      const res = await fetch(`${API_URL}/auth/admin/users/${email}/reset-password`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Failed to reset password");
+
+      alert(`New temporary password for ${email}:\n\n${data.temp_password}\n\nCopy this now — it will not be shown again. The user must change it on next login.`);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleToggleDisabled = async (email: string, currentlyDisabled: boolean) => {
+    const action = currentlyDisabled ? "enable" : "disable";
+    if (!confirm(`Are you sure you want to ${action} ${email}?`)) return;
+
+    try {
+      const res = await fetch(`${API_URL}/auth/admin/users/${email}/disable`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ disabled: !currentlyDisabled }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || `Failed to ${action} user`);
+      }
+
+      fetchUsers();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteUser = async (email: string) => {
+    if (!confirm(`Permanently delete ${email}? This cannot be undone.`)) return;
+
+    try {
+      const res = await fetch(`${API_URL}/auth/admin/users/${email}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Failed to delete user");
+      }
+
       fetchUsers();
     } catch (err: any) {
       alert(err.message);
@@ -251,14 +316,47 @@ export default function AdminDashboard() {
                         </td>
                         <td className="p-4">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                            u.role === "admin" 
-                              ? "bg-blue-50 text-blue-700 border-blue-200" 
+                            u.role === "admin"
+                              ? "bg-blue-50 text-blue-700 border-blue-200"
                               : "bg-gray-100 text-gray-600 border-gray-200"
                           }`}>
                             {u.role}
                           </span>
+                          {u.disabled && (
+                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-red-50 text-red-700 border-red-200">
+                              Disabled
+                            </span>
+                          )}
                         </td>
-                        <td className="p-4 text-right">
+                        <td className="p-4 text-right space-x-2 whitespace-nowrap">
+                          {u.email !== currentUserEmail && (
+                            <button
+                              onClick={() => handleResetPassword(u.email)}
+                              className="text-xs font-bold px-3 py-1.5 rounded-lg border text-amber-600 border-amber-200 hover:bg-amber-50 transition-all"
+                            >
+                              Reset Password
+                            </button>
+                          )}
+                          {u.email !== currentUserEmail && (
+                            <button
+                              onClick={() => handleToggleDisabled(u.email, !!u.disabled)}
+                              className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${
+                                u.disabled
+                                  ? "text-green-600 border-green-200 hover:bg-green-50"
+                                  : "text-orange-600 border-orange-200 hover:bg-orange-50"
+                              }`}
+                            >
+                              {u.disabled ? "Enable" : "Disable"}
+                            </button>
+                          )}
+                          {u.email !== currentUserEmail && u.email !== "tanaymukker@gmail.com" && (
+                            <button
+                              onClick={() => handleDeleteUser(u.email)}
+                              className="text-xs font-bold px-3 py-1.5 rounded-lg border text-red-700 border-red-300 hover:bg-red-50 transition-all"
+                            >
+                              Delete
+                            </button>
+                          )}
                           {u.email !== "tanaymukker@gmail.com" && (
                             <button
                               onClick={() => handleRoleChange(u.email, u.role)}

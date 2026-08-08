@@ -28,6 +28,7 @@ export default function Login() {
 
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("role", data.role || "user");
+      localStorage.setItem("email", data.email || "");
       
       if (data.require_password_change) {
         localStorage.setItem("require_password_change", "true");

@@ -75,6 +75,7 @@ def login(request: Request, user: UserLogin):
         "access_token": token,
         "token_type": "bearer",
         "role": db_user.get("role", "user"),
+        "email": user.email,
         "require_password_change": db_user.get("must_change_password", False),
     }
 
@@ -121,6 +122,7 @@ def get_all_users(admin_user=Depends(get_current_admin)):
                 "name": u.get("name"),
                 "email": u.get("email"),
                 "role": u.get("role", "user"),
+                "disabled": u.get("disabled", False),
             }
         )
     return result
