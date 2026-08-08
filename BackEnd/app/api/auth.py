@@ -49,6 +49,9 @@ def login(request: Request, user: UserLogin):
     if not db_user or not verify_password(user.password, db_user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
         
+    if db_user.get("disabled", False):
+        raise HTTPException(status_code=403, detail="Account disabled. Contact your administrator.")
+
     token = create_access_token({"sub": user.email})
     return {
         "access_token": token, 
