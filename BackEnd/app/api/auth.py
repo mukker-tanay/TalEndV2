@@ -207,3 +207,24 @@ def admin_set_disabled(
         raise HTTPException(status_code=404, detail="User not found")
 
     return {"msg": f"User {email} {'disabled' if update.disabled else 'enabled'}"}
+
+
+OWNER_EMAIL = "tanaymukker@gmail.com"
+
+
+@router.delete("/auth/admin/users/{email}")
+def admin_delete_user(email: str, admin_user=Depends(get_current_admin)):
+    if email == admin_user["email"]:
+        raise HTTPException(
+            status_code=400, detail="Cannot perform this action on your own account."
+        )
+
+    if email == OWNER_EMAIL:
+        raise HTTPException(status_code=403, detail="This account cannot be deleted.")
+
+    result = users.delete_one({"email": email})
+
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {"msg": f"User {email} deleted"}
