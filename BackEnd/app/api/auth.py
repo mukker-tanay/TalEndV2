@@ -5,7 +5,13 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from app.models.user import UserCreate, UserLogin, AdminUserCreate, PasswordChange
+from app.models.user import (
+    UserCreate,
+    UserLogin,
+    AdminUserCreate,
+    PasswordChange,
+    DisableUpdate,
+)
 from app.utils.auth import (
     hash_password,
     verify_password,
@@ -184,3 +190,20 @@ def admin_reset_password(email: str, admin_user=Depends(get_current_admin)):
         },
     )
     return {"msg": f"Password reset for {email}", "temp_password": temp_password}
+
+
+@router.put("/auth/admin/users/{email}/disable")
+def admin_set_disabled(
+    email: str, update: DisableUpdate, admin_user=Depends(get_current_admin)
+):
+    if email == admin_user["email"]:
+        raise HTTPException(
+            status_code=400, detail="Cannot perform this action on your own account."
+        )
+
+    result = users.update_one({"email": email}, {"$set": {"disabled": update.disabled}})
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {"msg": f"User {email} {'disabled' if update.disabled else 'enabled'}"}
